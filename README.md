@@ -118,6 +118,28 @@ top right and real data from Supabase. Don't open `index.html` directly
 (`file://`) — browsers restrict fetches from that origin, so use the server
 above instead.
 
+### 4. Deployed backend
+
+The backend also runs 24/7 on Railway, independent of anyone's laptop:
+
+```
+https://hydrofi-backend-production.up.railway.app
+```
+
+`frontend/config.js`'s `API_BASE` already points here, so the dashboard
+works without a local backend running. This is what firmware (Gab) should
+target too, rather than a local machine or tunnel.
+
+To redeploy after a backend change:
+
+```bash
+cd backend
+railway up
+```
+
+Env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`) live on Railway, not in
+this repo — manage them with `railway variable set` / `railway variable list`.
+
 ---
 
 ## Notes
