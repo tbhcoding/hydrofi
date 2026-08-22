@@ -7,6 +7,18 @@ range, and reports to this backend. A web dashboard reads from the backend.
 **Status:** step 2 of 7 — sensor ingest endpoint is live.
 
 ---
+## Who does what
+
+**Firmware side (gab)** — you do **not** need anything in the Setup section below.
+No Supabase account, no Python, no server. Read
+[`docs/DEVICE_API.md`](docs/DEVICE_API.md) instead — that's the full contract
+for what the ESP32 sends and receives. You need two things from the backend
+developer: the **device token**, and (once deployed) the **backend URL**.
+Both are sent privately, never committed here.
+ 
+**Backend / software side** — everything below.
+
+---
 
 ## Architecture
 
