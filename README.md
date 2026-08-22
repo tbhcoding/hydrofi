@@ -4,7 +4,7 @@ Hydroponics monitoring and automated dosing. An ESP32 reads pH, TDS, and
 water temperature from a nutrient reservoir, doses pumps to keep them in
 range, and reports to this backend. A web dashboard reads from the backend.
 
-**Status:** step 2 of 7 — sensor ingest endpoint is live.
+**Status:** step 3 of 7 — read endpoints for the dashboard are live.
 
 ---
 ## Who does what
@@ -122,7 +122,7 @@ assuming the data is missing.
 
 - [x] 1. Schema + skeleton
 - [x] 2. `POST /api/sensor-data` — device auth, validation, insert
-- [ ] 3. Read endpoints — latest, history, dose totals
+- [x] 3. Read endpoints — latest, history, dose totals
 - [ ] 4. Wire the real dashboard, drop the simulated data
 - [ ] 5. Command queue — pump control from the dashboard
 - [ ] 6. AI insights + chatbot

@@ -1,8 +1,9 @@
 """
 HydroFi backend.
 
-Step 2 adds the one device-facing endpoint: POST /api/sensor-data.
-Contract lives in docs/DEVICE_API.md -- read that before changing this.
+Step 3 adds the dashboard-facing read endpoints: latest reading,
+history, and dose totals. These are open (no token) -- the dashboard
+itself gets auth in step 4.
 """
 
 import os
@@ -22,6 +23,12 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 db = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 app = FastAPI(title="HydroFi API", version="0.1.0")
+
+
+def require_device(device_id: str) -> None:
+    result = db.table("devices").select("id").eq("id", device_id).limit(1).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail=f"unknown device_id: {device_id}")
 
 
 class SensorData(BaseModel):
@@ -84,3 +91,48 @@ def post_sensor_data(reading: SensorData, x_device_token: str | None = Header(de
 
     # Step 5 will populate this from the commands table.
     return {"ok": True, "commands": []}
+
+
+@app.get("/api/readings/latest")
+def get_latest_reading(device_id: str):
+    """Most recent reading for a device -- what the dashboard's live tiles show."""
+    require_device(device_id)
+    result = (
+        db.table("readings")
+        .select("*")
+        .eq("device_id", device_id)
+        .order("recorded_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="no readings for this device yet")
+    return result.data[0]
+
+
+@app.get("/api/readings/history")
+def get_reading_history(device_id: str, limit: int = 100):
+    """Recent readings, newest first -- feeds the dashboard's charts."""
+    require_device(device_id)
+    result = (
+        db.table("readings")
+        .select("*")
+        .eq("device_id", device_id)
+        .order("recorded_at", desc=True)
+        .limit(min(limit, 1000))
+        .execute()
+    )
+    return result.data
+
+
+@app.get("/api/readings/totals")
+def get_dose_totals(device_id: str):
+    """Lifetime pump volume for a device, summed from the incremental per-post amounts."""
+    require_device(device_id)
+    result = (
+        db.table("readings").select("nutrient_ml, ph_ml").eq("device_id", device_id).execute()
+    )
+    return {
+        "nutrient_ml_total": sum(row["nutrient_ml"] for row in result.data),
+        "ph_ml_total": sum(row["ph_ml"] for row in result.data),
+    }
