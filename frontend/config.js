@@ -1,0 +1,10 @@
+// Point this at wherever the backend is actually running.
+// Local dev default -- swap for the tunnel/deploy URL as needed.
+const API_BASE = "http://127.0.0.1:8000";
+
+// v1 is single-device (see db/schema.sql). Revisit if a second unit
+// ever needs picking between.
+const DEVICE_ID = "hydrofi-01";
+
+const REFRESH_INTERVAL_MS = 30_000; // matches the device's posting interval
+const HISTORY_LIMIT = 100;

@@ -4,7 +4,7 @@ Hydroponics monitoring and automated dosing. An ESP32 reads pH, TDS, and
 water temperature from a nutrient reservoir, doses pumps to keep them in
 range, and reports to this backend. A web dashboard reads from the backend.
 
-**Status:** step 3 of 7 — read endpoints for the dashboard are live.
+**Status:** step 4 of 7 — dashboard is live and reading real data.
 
 ---
 ## Who does what
@@ -40,6 +40,12 @@ hydrofi/
 │  ├─ main.py            FastAPI app
 │  ├─ requirements.txt
 │  └─ .env.example       copy to .env and fill in
+├─ frontend/
+│  ├─ index.html         dashboard — plain HTML/CSS/JS, no build step
+│  ├─ app.js
+│  ├─ style.css
+│  └─ config.js          API_BASE / DEVICE_ID — edit this to point at a
+│                         different backend
 ├─ db/
 │  └─ schema.sql         run once in Supabase
 └─ docs/
@@ -98,6 +104,20 @@ Interactive API docs live at <http://127.0.0.1:8000/docs>. That page becomes
 the firmware testing tool in step 2 — requests can be fired at the backend
 from the browser with no hardware attached.
 
+### 3. Dashboard
+
+With the backend running from step 2, in a second terminal:
+
+```bash
+cd frontend
+python3 -m http.server 8080
+```
+
+Open <http://127.0.0.1:8080/index.html>. It should show `connected` in the
+top right and real data from Supabase. Don't open `index.html` directly
+(`file://`) — browsers restrict fetches from that origin, so use the server
+above instead.
+
 ---
 
 ## Notes
@@ -123,7 +143,7 @@ assuming the data is missing.
 - [x] 1. Schema + skeleton
 - [x] 2. `POST /api/sensor-data` — device auth, validation, insert
 - [x] 3. Read endpoints — latest, history, dose totals
-- [ ] 4. Wire the real dashboard, drop the simulated data
+- [x] 4. Wire the real dashboard, drop the simulated data
 - [ ] 5. Command queue — pump control from the dashboard
 - [ ] 6. AI insights + chatbot
 - [ ] 7. Deploy

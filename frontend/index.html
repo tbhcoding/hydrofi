@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HydroFi Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>HydroFi</h1>
+    <div class="device-info">
+      <span id="device-name">—</span>
+      <span id="device-mode" class="badge">—</span>
+    </div>
+    <div id="connection-status" class="status">connecting…</div>
+  </header>
+
+  <main>
+    <section class="stat-grid">
+      <div class="stat-card" id="card-ph">
+        <h2>pH</h2>
+        <div class="stat-value"><span id="ph-value">—</span></div>
+        <div class="stat-range" id="ph-range">target —</div>
+      </div>
+      <div class="stat-card" id="card-tds">
+        <h2>TDS</h2>
+        <div class="stat-value"><span id="tds-value">—</span><span class="unit">ppm</span></div>
+        <div class="stat-range" id="tds-range">target —</div>
+      </div>
+      <div class="stat-card" id="card-temp">
+        <h2>Temp</h2>
+        <div class="stat-value"><span id="temp-value">—</span><span class="unit">°C</span></div>
+        <div class="stat-range" id="temp-range">target —</div>
+      </div>
+    </section>
+
+    <section class="totals">
+      <div class="total-card">
+        <span class="total-label">Nutrient dosed (lifetime)</span>
+        <span class="total-value" id="nutrient-total">— mL</span>
+      </div>
+      <div class="total-card">
+        <span class="total-label">pH-down dosed (lifetime)</span>
+        <span class="total-value" id="ph-total">— mL</span>
+      </div>
+      <div class="total-card">
+        <span class="total-label">Last reading</span>
+        <span class="total-value" id="last-updated">—</span>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="chart-card">
+        <h2>pH history</h2>
+        <canvas id="chart-ph"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>TDS history</h2>
+        <canvas id="chart-tds"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>Temperature history</h2>
+        <canvas id="chart-temp"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
