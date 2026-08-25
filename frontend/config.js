@@ -9,3 +9,19 @@ const DEVICE_ID = "hydrofi-01";
 
 const REFRESH_INTERVAL_MS = 30_000; // matches the device's posting interval
 const HISTORY_LIMIT = 100;
+const STALE_READING_MS = REFRESH_INTERVAL_MS * 2;
+const NEAR_EDGE_FRACTION = 0.15;
+const HISTORY_LIMITS = {
+  "1h": 120,
+  "6h": 720,
+  "24h": 1000,
+  "7d": 1000,
+};
+
+// Optional endpoints for manual dashboard controls.
+// Keep null until backend routes are available.
+const CONTROL_ENDPOINTS = {
+  setMode: null,
+  doseNutrient: null,
+  dosePhDown: null,
+};
