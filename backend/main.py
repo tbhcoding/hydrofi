@@ -1,13 +1,15 @@
 """
 HydroFi backend.
 
-Step 4 wires up the real dashboard: CORS so it can call this API from
-a different origin, and a device-config endpoint so it can show real
-target ranges instead of hardcoded ones.
+Step 5 adds auto-dosing: when a device is in 'auto' mode and a reading
+comes in out of range, queue a correction command, then hand back any
+pending commands in the same sensor-data response the device already
+polls every 30s. Contract lives in docs/DEVICE_API.md.
 """
 
 import os
 import threading
+from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
@@ -56,6 +58,34 @@ def require_device(device_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"unknown device_id: {device_id}")
 
 
+# Both pumps only push in one direction (nutrient raises TDS, pH-down
+# lowers pH) -- there's no pump to correct the other direction, so
+# those cases are left alone rather than inventing a fix that doesn't
+# exist in the hardware.
+AUTO_DOSE_ML = 5
+AUTO_DOSE_COOLDOWN = timedelta(minutes=15)
+
+
+def queue_auto_dose_if_due(device_id: str, action: str) -> None:
+    """Queue a correction command unless one of the same type already ran recently."""
+    cooldown_cutoff = (datetime.now(timezone.utc) - AUTO_DOSE_COOLDOWN).isoformat()
+    recent = db_execute(
+        db.table("commands")
+        .select("id")
+        .eq("device_id", device_id)
+        .eq("action", action)
+        .gte("created_at", cooldown_cutoff)
+        .limit(1)
+    )
+    if recent.data:
+        return
+    db_execute(
+        db.table("commands").insert(
+            {"device_id": device_id, "action": action, "payload": {"ml": AUTO_DOSE_ML}}
+        )
+    )
+
+
 class SensorData(BaseModel):
     device_id: str
     ph: float = Field(ge=0, le=14)
@@ -90,12 +120,16 @@ def post_sensor_data(reading: SensorData, x_device_token: str | None = Header(de
         raise HTTPException(status_code=401, detail="missing X-Device-Token header")
 
     result = db_execute(
-        db.table("devices").select("id").eq("api_token", x_device_token).limit(1)
+        db.table("devices")
+        .select("id, mode, ph_max, tds_min")
+        .eq("api_token", x_device_token)
+        .limit(1)
     )
     if not result.data:
         raise HTTPException(status_code=401, detail="unknown device token")
 
-    device_id = result.data[0]["id"]
+    device = result.data[0]
+    device_id = device["id"]
     if device_id != reading.device_id:
         raise HTTPException(status_code=401, detail="device_id does not match token")
 
@@ -112,8 +146,27 @@ def post_sensor_data(reading: SensorData, x_device_token: str | None = Header(de
         )
     )
 
-    # Step 5 will populate this from the commands table.
-    return {"ok": True, "commands": []}
+    if device["mode"] == "auto":
+        if reading.ph > device["ph_max"]:
+            queue_auto_dose_if_due(device_id, "dose_ph_down")
+        if reading.tds < device["tds_min"]:
+            queue_auto_dose_if_due(device_id, "dose_nutrient")
+
+    pending = db_execute(
+        db.table("commands")
+        .select("id, action, payload")
+        .eq("device_id", device_id)
+        .is_("delivered_at", "null")
+    )
+    if pending.data:
+        db_execute(
+            db.table("commands")
+            .update({"delivered_at": datetime.now(timezone.utc).isoformat()})
+            .eq("device_id", device_id)
+            .is_("delivered_at", "null")
+        )
+
+    return {"ok": True, "commands": pending.data}
 
 
 @app.get("/api/devices/{device_id}")

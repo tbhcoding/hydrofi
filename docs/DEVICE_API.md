@@ -66,26 +66,42 @@ NTP and a wrong timestamp corrupts the charts silently. Just post promptly.
 ```json
 {
   "ok": true,
-  "commands": []
-}
-```
-
-`commands` is **always an empty array for now**, but write the loop that
-drains it anyway — that's how remote pump control will work in step 5, and
-doing it now means no firmware rewrite later.
-
-Future shape, for reference:
-
-```json
-{
-  "ok": true,
   "commands": [
-    { "id": 42, "action": "dose_nutrient", "payload": { "ml": 10 } }
+    { "id": 42, "action": "dose_nutrient", "payload": { "ml": 5 } }
   ]
 }
 ```
 
-Act on each command, then include the ID in `acked` on the next post.
+`commands` is usually empty, but not always — as of step 5, the backend
+auto-doses. If a device is in `auto` mode and a reading comes in out of
+range, the backend queues a correction and hands it back in this same
+response. Two possible `action` values, each with a `payload.ml` amount
+to dispense:
+
+| Action | Pump | Fires when |
+|---|---|---|
+| `dose_nutrient` | nutrient pump | `tds` below the device's `tds_min` |
+| `dose_ph_down` | pH-down pump | `ph` above the device's `ph_max` |
+
+Both pumps only push in one direction, so the opposite cases (`tds` too
+high, `ph` too low) never produce a command — there's no pump to correct
+them, so the backend leaves those alone rather than queuing a fix that
+doesn't exist in the hardware.
+
+For each command received: run that pump for the given `ml`, then report
+what was actually dispensed via `nutrient_ml`/`ph_ml` on your next post —
+same incremental-since-last-post rule as always. That's what closes the
+loop and makes the dose show up in the dashboard's totals.
+
+**No ack needed.** A command is considered delivered the moment it's
+included in a response — there's no `acked` field to send back. Treat
+`commands` as fire-and-forget: if you miss one (crash, reboot before
+acting on it), it will not be resent.
+
+**Cooldown.** The backend won't queue another correction of the same type
+for a device within 15 minutes of the last one, even if still out of
+range — leaves time for a dose to actually mix in before the backend
+reacts again.
 
 ### Errors
 
