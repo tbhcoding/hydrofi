@@ -59,3 +59,17 @@ Because current backend routes for control actions are not present, control endp
 ## Validation
 
 - Ran syntax validation: `node --check` on `app.js` — **passes**.
+
+---
+# UPDATE NO. 2
+
+---
+
+## What changed:
+
+### 1. Added logo to the top bar in frontend/index.html
+### 2. Applied a water-inspired brand palette in frontend/style.css using:
+- deep aqua/navy for the primary feel
+- bright cyan/blue accents to echo the logo
+- green and amber for status/UI balance
+### 3. Kept the overall design cohesive with softer shadows, rounded cards, and cleaner contrast so it complements the logo instead of competing with it.
