@@ -8,31 +8,64 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>HydroFi</h1>
+    <div class="brand" aria-label="HydroFi brand">
+      <img src="logos/Hydrofi.svg" alt="HydroFi logo" class="brand-logo" />
+      <div class="brand-copy">
+        <span class="brand-name">HydroFi</span>
+        <span class="brand-tag">Smart grow control</span>
+      </div>
+    </div>
     <div class="device-info">
       <span id="device-name">—</span>
-      <span id="device-mode" class="badge">—</span>
+      <span id="device-mode" class="badge mode-pill">—</span>
     </div>
-    <div id="connection-status" class="status">connecting…</div>
+    <div class="connection-wrap">
+      <div id="connection-status" class="status">connecting…</div>
+      <div id="freshness-status" class="freshness">last updated —</div>
+    </div>
   </header>
 
   <main>
+    <section id="alert-banner" class="alert-banner hidden" role="alert" aria-live="polite"></section>
+
     <section class="stat-grid">
       <div class="stat-card" id="card-ph">
-        <h2>pH</h2>
+        <div class="stat-head">
+          <h2>pH</h2>
+          <span id="ph-status" class="metric-status neutral">• No data</span>
+        </div>
         <div class="stat-value"><span id="ph-value">—</span></div>
         <div class="stat-range" id="ph-range">target —</div>
       </div>
       <div class="stat-card" id="card-tds">
-        <h2>TDS</h2>
+        <div class="stat-head">
+          <h2>TDS</h2>
+          <span id="tds-status" class="metric-status neutral">• No data</span>
+        </div>
         <div class="stat-value"><span id="tds-value">—</span><span class="unit">ppm</span></div>
         <div class="stat-range" id="tds-range">target —</div>
       </div>
       <div class="stat-card" id="card-temp">
-        <h2>Temp</h2>
+        <div class="stat-head">
+          <h2>Temp</h2>
+          <span id="temp-status" class="metric-status neutral">• No data</span>
+        </div>
         <div class="stat-value"><span id="temp-value">—</span><span class="unit">°C</span></div>
         <div class="stat-range" id="temp-range">target —</div>
       </div>
+    </section>
+
+    <section class="controls-card">
+      <div class="controls-head">
+        <h2>Manual Controls</h2>
+        <span id="mode-indicator" class="badge mode-indicator">Mode —</span>
+      </div>
+      <div class="controls-actions">
+        <button id="mode-toggle-btn" class="btn btn-outline" type="button">Switch to MANUAL</button>
+        <button id="dose-nutrient-btn" class="btn btn-primary" type="button">Dose Nutrient</button>
+        <button id="dose-ph-btn" class="btn btn-danger" type="button">Dose pH-down</button>
+      </div>
+      <p class="controls-note">Each manual action requires confirmation.</p>
     </section>
 
     <section class="totals">
@@ -51,6 +84,15 @@
     </section>
 
     <section class="charts">
+      <div class="charts-toolbar">
+        <h2>History</h2>
+        <div class="range-selector" role="group" aria-label="History time range">
+          <button class="range-btn active" data-range="1h" type="button">1h</button>
+          <button class="range-btn" data-range="6h" type="button">6h</button>
+          <button class="range-btn" data-range="24h" type="button">24h</button>
+          <button class="range-btn" data-range="7d" type="button">7d</button>
+        </div>
+      </div>
       <div class="chart-card">
         <h2>pH history</h2>
         <canvas id="chart-ph"></canvas>
@@ -65,6 +107,8 @@
       </div>
     </section>
   </main>
+
+  <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
