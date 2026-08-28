@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from supabase import create_client
 
 load_dotenv()
@@ -81,7 +81,11 @@ def queue_auto_dose_if_due(device_id: str, action: str) -> None:
         return
     db_execute(
         db.table("commands").insert(
-            {"device_id": device_id, "action": action, "payload": {"ml": AUTO_DOSE_ML}}
+            {
+                "device_id": device_id,
+                "action": action,
+                "payload": {"ml": AUTO_DOSE_ML, "source": "auto"},
+            }
         )
     )
 
@@ -93,6 +97,23 @@ class SensorData(BaseModel):
     temp_c: float
     nutrient_ml: float = Field(default=0, ge=0)
     ph_ml: float = Field(default=0, ge=0)
+
+
+class DoseRequest(BaseModel):
+    device_id: str
+
+
+class SetModeRequest(BaseModel):
+    device_id: str
+    mode: str
+
+    @field_validator("mode")
+    @classmethod
+    def normalize_mode(cls, v: str) -> str:
+        normalized = v.strip().lower()
+        if normalized not in ("auto", "manual"):
+            raise ValueError("mode must be 'auto' or 'manual'")
+        return normalized
 
 
 @app.get("/health")
@@ -224,3 +245,45 @@ def get_dose_totals(device_id: str):
         "nutrient_ml_total": sum(row["nutrient_ml"] for row in result.data),
         "ph_ml_total": sum(row["ph_ml"] for row in result.data),
     }
+
+
+@app.post("/api/devices/mode")
+def set_device_mode(body: SetModeRequest):
+    """Dashboard-triggered mode switch (AUTO/MANUAL toggle)."""
+    require_device(body.device_id)
+    db_execute(db.table("devices").update({"mode": body.mode}).eq("id", body.device_id))
+    return {"ok": True, "mode": body.mode}
+
+
+def queue_manual_dose(device_id: str, action: str) -> None:
+    """Queue a dose from an explicit dashboard button press -- no cooldown check.
+
+    This also counts toward the auto-dosing cooldown for the same
+    action/device (queue_auto_dose_if_due doesn't distinguish source),
+    which is the right behavior: a manual dose should suppress an
+    automatic one from firing right on top of it.
+    """
+    require_device(device_id)
+    db_execute(
+        db.table("commands").insert(
+            {
+                "device_id": device_id,
+                "action": action,
+                "payload": {"ml": AUTO_DOSE_ML, "source": "manual"},
+            }
+        )
+    )
+
+
+@app.post("/api/dose/nutrient")
+def manual_dose_nutrient(body: DoseRequest):
+    """Dashboard 'Dose Nutrient' button."""
+    queue_manual_dose(body.device_id, "dose_nutrient")
+    return {"ok": True}
+
+
+@app.post("/api/dose/ph-down")
+def manual_dose_ph_down(body: DoseRequest):
+    """Dashboard 'Dose pH-down' button."""
+    queue_manual_dose(body.device_id, "dose_ph_down")
+    return {"ok": True}

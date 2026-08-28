@@ -4,7 +4,7 @@ Hydroponics monitoring and automated dosing. An ESP32 reads pH, TDS, and
 water temperature from a nutrient reservoir, doses pumps to keep them in
 range, and reports to this backend. A web dashboard reads from the backend.
 
-**Status:** step 5 of 7 — backend auto-doses when a reading is out of range.
+**Status:** step 5 of 7 — auto-dosing plus manual dashboard controls (mode switch, dose now).
 
 ---
 ## Who does what
@@ -166,8 +166,9 @@ assuming the data is missing.
 - [x] 2. `POST /api/sensor-data` — device auth, validation, insert
 - [x] 3. Read endpoints — latest, history, dose totals
 - [x] 4. Wire the real dashboard, drop the simulated data
-- [x] 5. Command queue + auto-dosing — backend queues a correction when a
-      device (in `auto` mode) posts an out-of-range reading; manual
-      dashboard-triggered dosing is not built yet
+- [x] 5. Command queue + auto-dosing + manual controls — backend queues a
+      correction when a device (in `auto` mode) posts an out-of-range
+      reading; dashboard can also switch AUTO/MANUAL and trigger a dose
+      directly (`POST /api/devices/mode`, `/api/dose/nutrient`, `/api/dose/ph-down`)
 - [ ] 6. AI insights + chatbot
 - [ ] 7. Deploy

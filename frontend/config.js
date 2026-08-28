@@ -18,10 +18,9 @@ const HISTORY_LIMITS = {
   "7d": 1000,
 };
 
-// Optional endpoints for manual dashboard controls.
-// Keep null until backend routes are available.
+// Manual dashboard controls, added in the backend as of this update.
 const CONTROL_ENDPOINTS = {
-  setMode: null,
-  doseNutrient: null,
-  dosePhDown: null,
+  setMode: "/api/devices/mode",
+  doseNutrient: "/api/dose/nutrient",
+  dosePhDown: "/api/dose/ph-down",
 };
