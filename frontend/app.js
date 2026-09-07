@@ -1,7 +1,9 @@
 const deviceNameEl = document.getElementById("device-name");
 const deviceModeEl = document.getElementById("device-mode");
 const connectionStatusEl = document.getElementById("connection-status");
+const connectionStatusTextEl = document.getElementById("connection-status-text");
 const freshnessStatusEl = document.getElementById("freshness-status");
+const freshnessStatusTextEl = document.getElementById("freshness-status-text");
 const lastUpdatedEl = document.getElementById("last-updated");
 const nutrientTotalEl = document.getElementById("nutrient-total");
 const phTotalEl = document.getElementById("ph-total");
@@ -95,7 +97,7 @@ async function postJSON(path, body) {
 
 function setConnectionStatus(state, detail) {
   isConnected = state !== "error";
-  connectionStatusEl.textContent = detail || state;
+  connectionStatusTextEl.textContent = detail || state;
   connectionStatusEl.className = `status status-${state}`;
 }
 
@@ -110,12 +112,12 @@ function formatRelativeAge(msSinceUpdate) {
 
 function updateFreshnessStatus() {
   if (!lastReadingAtMs) {
-    freshnessStatusEl.textContent = "last updated —";
+    freshnessStatusTextEl.textContent = "last updated —";
     freshnessStatusEl.classList.remove("stale");
     return;
   }
   const ageMs = Date.now() - lastReadingAtMs;
-  freshnessStatusEl.textContent = `last updated ${formatRelativeAge(ageMs)}`;
+  freshnessStatusTextEl.textContent = `last updated ${formatRelativeAge(ageMs)}`;
   const stale = ageMs > STALE_READING_MS;
   freshnessStatusEl.classList.toggle("stale", stale);
   if (isConnected && stale) {

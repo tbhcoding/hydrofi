@@ -7,6 +7,24 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <svg style="display: none">
+    <defs>
+      <symbol id="icon-activity" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></symbol>
+      <symbol id="icon-bar-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></symbol>
+      <symbol id="icon-droplet" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></symbol>
+      <symbol id="icon-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></symbol>
+      <symbol id="icon-thermometer" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z" /></symbol>
+      <symbol id="icon-flask" viewBox="0 0 24 24"><path d="M9 2v6.5L4 18a2 2 0 0 0 1.8 3h12.4a2 2 0 0 0 1.8-3l-5-9.5V2" /><line x1="9" y1="2" x2="15" y2="2" /></symbol>
+      <symbol id="icon-repeat" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></symbol>
+      <symbol id="icon-wifi" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" /></symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></symbol>
+      <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></symbol>
+      <symbol id="icon-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></symbol>
+      <symbol id="icon-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></symbol>
+      <symbol id="icon-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13H4a16 16 0 0 1 16-16h0a16 16 0 0 1-9 23z" /><path d="M4 13a16 16 0 0 1 16-9" /></symbol>
+    </defs>
+  </svg>
+
   <div id="intro-screen" class="intro-screen">
     <img src="logos/Intro.svg" alt="HydroFi" class="intro-logo" />
   </div>
@@ -48,31 +66,47 @@
       <span id="device-mode" class="badge mode-pill">—</span>
     </div>
     <div class="connection-wrap">
-      <div id="connection-status" class="status">connecting…</div>
-      <div id="freshness-status" class="freshness">last updated —</div>
+      <div id="connection-status" class="status">
+        <svg class="icon" aria-hidden="true"><use href="#icon-wifi" xlink:href="#icon-wifi" /></svg>
+        <span id="connection-status-text">connecting…</span>
+      </div>
+      <div id="freshness-status" class="freshness">
+        <svg class="icon" aria-hidden="true"><use href="#icon-clock" xlink:href="#icon-clock" /></svg>
+        <span id="freshness-status-text">last updated —</span>
+      </div>
     </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Dashboard sections">
-    <button
-      id="tab-live-btn"
-      class="tab-btn active"
-      type="button"
-      role="tab"
-      aria-selected="true"
-      aria-controls="tab-panel-live"
-      data-tab="live"
-    >Live Monitoring</button>
-    <button
-      id="tab-history-btn"
-      class="tab-btn"
-      type="button"
-      role="tab"
-      aria-selected="false"
-      aria-controls="tab-panel-history"
-      tabindex="-1"
-      data-tab="history"
-    >Historical Analytics</button>
+    <div class="tabs-pill">
+      <button
+        id="tab-live-btn"
+        class="tab-btn active"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="tab-panel-live"
+        aria-label="Live Monitoring"
+        data-tab="live"
+      >
+        <svg class="icon" aria-hidden="true"><use href="#icon-activity" xlink:href="#icon-activity" /></svg>
+        <span>Live Monitoring</span>
+      </button>
+      <button
+        id="tab-history-btn"
+        class="tab-btn"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="tab-panel-history"
+        aria-label="Historical Analytics"
+        tabindex="-1"
+        data-tab="history"
+      >
+        <svg class="icon" aria-hidden="true"><use href="#icon-bar-chart" xlink:href="#icon-bar-chart" /></svg>
+        <span>Historical Analytics</span>
+      </button>
+    </div>
   </nav>
 
   <main>
@@ -88,7 +122,10 @@
       <div class="stat-grid">
         <div class="stat-card" id="card-ph">
           <div class="stat-head">
-            <h2>pH</h2>
+            <div class="stat-title">
+              <span class="icon-badge icon-badge-ph"><svg class="icon" aria-hidden="true"><use href="#icon-droplet" xlink:href="#icon-droplet" /></svg></span>
+              <h2>pH</h2>
+            </div>
             <span id="ph-status" class="metric-status neutral">• No data</span>
           </div>
           <div class="stat-value"><span id="ph-value">—</span></div>
@@ -96,7 +133,10 @@
         </div>
         <div class="stat-card" id="card-tds">
           <div class="stat-head">
-            <h2>TDS</h2>
+            <div class="stat-title">
+              <span class="icon-badge icon-badge-tds"><svg class="icon" aria-hidden="true"><use href="#icon-sliders" xlink:href="#icon-sliders" /></svg></span>
+              <h2>TDS</h2>
+            </div>
             <span id="tds-status" class="metric-status neutral">• No data</span>
           </div>
           <div class="stat-value"><span id="tds-value">—</span><span class="unit">ppm</span></div>
@@ -104,7 +144,10 @@
         </div>
         <div class="stat-card" id="card-temp">
           <div class="stat-head">
-            <h2>Temp</h2>
+            <div class="stat-title">
+              <span class="icon-badge icon-badge-temp"><svg class="icon" aria-hidden="true"><use href="#icon-thermometer" xlink:href="#icon-thermometer" /></svg></span>
+              <h2>Temp</h2>
+            </div>
             <span id="temp-status" class="metric-status neutral">• No data</span>
           </div>
           <div class="stat-value"><span id="temp-value">—</span><span class="unit">°C</span></div>
@@ -118,24 +161,42 @@
           <span id="mode-indicator" class="badge mode-indicator">Mode —</span>
         </div>
         <div class="controls-actions">
-          <button id="mode-toggle-btn" class="btn btn-outline" type="button">Switch to MANUAL</button>
-          <button id="dose-nutrient-btn" class="btn btn-primary" type="button">Dose Nutrient</button>
-          <button id="dose-ph-btn" class="btn btn-danger" type="button">Dose pH-down</button>
+          <button id="mode-toggle-btn" class="btn btn-outline" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#icon-repeat" xlink:href="#icon-repeat" /></svg>
+            Switch to MANUAL
+          </button>
+          <button id="dose-nutrient-btn" class="btn btn-primary" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#icon-flask" xlink:href="#icon-flask" /></svg>
+            Dose Nutrient
+          </button>
+          <button id="dose-ph-btn" class="btn btn-danger" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#icon-droplet" xlink:href="#icon-droplet" /></svg>
+            Dose pH-down
+          </button>
         </div>
         <p class="controls-note">Each manual action requires confirmation.</p>
       </section>
 
       <section class="totals">
         <div class="total-card">
-          <span class="total-label">Nutrient dosed (lifetime)</span>
+          <span class="total-label">
+            <svg class="icon" aria-hidden="true"><use href="#icon-flask" xlink:href="#icon-flask" /></svg>
+            Nutrient dosed (lifetime)
+          </span>
           <span class="total-value" id="nutrient-total">— mL</span>
         </div>
         <div class="total-card">
-          <span class="total-label">pH-down dosed (lifetime)</span>
+          <span class="total-label">
+            <svg class="icon" aria-hidden="true"><use href="#icon-droplet" xlink:href="#icon-droplet" /></svg>
+            pH-down dosed (lifetime)
+          </span>
           <span class="total-value" id="ph-total">— mL</span>
         </div>
         <div class="total-card">
-          <span class="total-label">Last reading</span>
+          <span class="total-label">
+            <svg class="icon" aria-hidden="true"><use href="#icon-clock" xlink:href="#icon-clock" /></svg>
+            Last reading
+          </span>
           <span class="total-value" id="last-updated">—</span>
         </div>
       </section>
@@ -159,8 +220,14 @@
             <button class="range-btn" data-range="7d" type="button">7d</button>
           </div>
           <div class="view-toggle" role="group" aria-label="History view">
-            <button class="view-btn active" data-view="chart" type="button">Chart</button>
-            <button class="view-btn" data-view="table" type="button">Table</button>
+            <button class="view-btn active" data-view="chart" type="button">
+              <svg class="icon" aria-hidden="true"><use href="#icon-bar-chart" xlink:href="#icon-bar-chart" /></svg>
+              Chart
+            </button>
+            <button class="view-btn" data-view="table" type="button">
+              <svg class="icon" aria-hidden="true"><use href="#icon-grid" xlink:href="#icon-grid" /></svg>
+              Table
+            </button>
           </div>
         </div>
       </div>
@@ -197,9 +264,15 @@
           </table>
         </div>
         <div class="table-pager">
-          <button id="table-prev-btn" class="btn btn-outline btn-sm" type="button" disabled>Prev</button>
+          <button id="table-prev-btn" class="btn btn-outline btn-sm" type="button" disabled>
+            <svg class="icon" aria-hidden="true"><use href="#icon-chevron-left" xlink:href="#icon-chevron-left" /></svg>
+            Prev
+          </button>
           <span id="table-page-label" class="table-page-label">Page 1 of 1</span>
-          <button id="table-next-btn" class="btn btn-outline btn-sm" type="button" disabled>Next</button>
+          <button id="table-next-btn" class="btn btn-outline btn-sm" type="button" disabled>
+            Next
+            <svg class="icon" aria-hidden="true"><use href="#icon-chevron-right" xlink:href="#icon-chevron-right" /></svg>
+          </button>
         </div>
       </div>
     </section>

@@ -96,3 +96,69 @@ Because current backend routes for control actions are not present, control endp
 
 ## Validation
 - Verified via headless-browser screenshots at 0s, 2s, and 4.2s: intro visible and correctly sized at load, still visible mid-delay, fully gone (dashboard visible) after the fade completes.
+
+---
+# UPDATE NO. 4
+
+---
+
+## What changed:
+
+**Files changed:**
+- `index.html`
+- `style.css`
+- `app.js`
+
+### 1. Brand-matched color palette
+- Replaced the old teal/cyan palette with colors sampled directly from the HydroFi logo: dark forest green (`#0b5b1f`) and leaf green (`#1f8a3d`) for primary/brand, droplet blue (`#5170ff`/`#3b5bdb`) for accents and secondary chips.
+- Updated every hardcoded shadow/border tied to the old palette (intro/brand logo glow, badges, buttons, chart line colors) so nothing was left mismatched.
+
+### 2. Two-tab layout: Live Monitoring / Historical Analytics
+- Split the single-page dashboard into tabs: **Live Monitoring** (stat cards, manual controls, totals) and **Historical Analytics** (time range selector, charts, and a new data table).
+- Built as an accessible ARIA tabs pattern: `role="tab"`/`tabpanel`, `aria-selected`, roving `tabindex`, and arrow-key navigation between tabs.
+
+### 3. Table view for history
+- Added a Chart/Table view toggle inside Historical Analytics. Table mode shows a sortable-by-time data table with color-coded status pills (OK/LOW/HIGH/etc., reusing the same logic as the live stat cards) and client-side pagination (25 rows per page, Prev/Next).
+
+### 4. Bug fix during verification
+- The view-toggle's `.hidden` class was losing the CSS cascade to `.charts`/`.table-card`'s own `display` rules (equal specificity, later rule wins), so chart and table views briefly rendered simultaneously. Fixed with a higher-specificity override (`.charts.hidden, .table-card.hidden { display: none; }`).
+
+## Validation
+- Verified with headless-browser runs (desktop and 390px mobile width), including a pass with mocked API responses to confirm the table/charts populate, color-code, and paginate correctly. No console errors in any state.
+
+---
+# UPDATE NO. 5
+
+---
+
+## What changed:
+
+**Files changed:**
+- `index.html`
+- `style.css`
+- `app.js`
+
+Reworked the visual language to be simpler and less "data-wall," using a plant-shop-app reference (soft rounded cards, pill buttons, icon-illustrated content) as a guide.
+
+### 1. Inline SVG icon set
+- Added a hidden `<symbol>` sprite (leaf, activity, bar-chart, droplet, sliders, thermometer, flask, repeat, wifi, clock, grid, chevrons) referenced via `<use>` throughout the UI.
+- Icons are vector and sized in `em` units, so they scale cleanly with their surrounding text at any screen size instead of relying on a fixed-size icon font or raster images.
+
+### 2. Pill-shaped tab navigation
+- "Live Monitoring" / "Historical Analytics" now sit in a rounded floating pill nav with icons; the active tab gets a solid green fill.
+- On narrow screens the text labels collapse to icon-only circles (visual labels hidden, `aria-label` kept for screen readers).
+
+### 3. Icon-badge stat cards
+- pH/TDS/Temp cards each get a small colored rounded-square icon badge (green droplet, blue sliders, amber thermometer) instead of a bare text header.
+
+### 4. Pill buttons everywhere
+- Manual Controls, the chart/table view toggle, the time range selector, and the table pager all switched from rectangular buttons to fully-rounded pill buttons with icons.
+
+### 5. Softer corners and shadows
+- Card border-radius increased (14px → 20px), shadows lightened and enlarged for a gentler, less boxy feel, matching the reference's soft aesthetic.
+
+### 6. Compatibility fix
+- `#connection-status` and `#freshness-status` used to have their whole `textContent` overwritten by JS on every update, which would have wiped out the new icons. Split each into an icon element plus a dedicated inner text span (`#connection-status-text`, `#freshness-status-text`) and updated `app.js` to target only the inner span.
+
+## Validation
+- Verified with headless-browser runs (desktop, chart/table toggle, table pagination, and 390px mobile width) using mocked API data — icons and pill nav render correctly at every breakpoint, no console errors.
