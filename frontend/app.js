@@ -18,6 +18,9 @@ const viewButtons = Array.from(document.querySelectorAll(".view-btn"));
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 const tipsListEl = document.getElementById("tips-list");
+const tipsCardEl = document.getElementById("tips-card");
+const tipsCloseBtn = document.getElementById("tips-close-btn");
+const tipsShowBtn = document.getElementById("tips-show-btn");
 const chatMessagesEl = document.getElementById("chat-messages");
 const chatFormEl = document.getElementById("chat-form");
 const chatInputEl = document.getElementById("chat-input");
@@ -730,6 +733,16 @@ function wireUI() {
   tableNextBtn.addEventListener("click", () => {
     tablePage += 1;
     renderHistoryTable();
+  });
+
+  tipsCloseBtn.addEventListener("click", () => {
+    tipsCardEl.hidden = true;
+    tipsShowBtn.hidden = false;
+  });
+
+  tipsShowBtn.addEventListener("click", () => {
+    tipsCardEl.hidden = false;
+    tipsShowBtn.hidden = true;
   });
 
   chatFormEl.addEventListener("submit", (event) => {

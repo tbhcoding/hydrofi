@@ -738,6 +738,11 @@ main {
   display: none;
 }
 
+.btn[hidden],
+.assistant-card[hidden] {
+  display: none;
+}
+
 .toast-container {
   position: fixed;
   right: 1rem;
@@ -794,6 +799,31 @@ main {
 
 .assistant-head .icon {
   color: var(--primary);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .chat-hint-badge {
