@@ -53,85 +53,154 @@
     </div>
   </header>
 
+  <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+    <button
+      id="tab-live-btn"
+      class="tab-btn active"
+      type="button"
+      role="tab"
+      aria-selected="true"
+      aria-controls="tab-panel-live"
+      data-tab="live"
+    >Live Monitoring</button>
+    <button
+      id="tab-history-btn"
+      class="tab-btn"
+      type="button"
+      role="tab"
+      aria-selected="false"
+      aria-controls="tab-panel-history"
+      tabindex="-1"
+      data-tab="history"
+    >Historical Analytics</button>
+  </nav>
+
   <main>
     <section id="alert-banner" class="alert-banner hidden" role="alert" aria-live="polite"></section>
 
-    <section class="stat-grid">
-      <div class="stat-card" id="card-ph">
-        <div class="stat-head">
-          <h2>pH</h2>
-          <span id="ph-status" class="metric-status neutral">• No data</span>
+    <section
+      id="tab-panel-live"
+      class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="tab-live-btn"
+      tabindex="0"
+    >
+      <div class="stat-grid">
+        <div class="stat-card" id="card-ph">
+          <div class="stat-head">
+            <h2>pH</h2>
+            <span id="ph-status" class="metric-status neutral">• No data</span>
+          </div>
+          <div class="stat-value"><span id="ph-value">—</span></div>
+          <div class="stat-range" id="ph-range">target —</div>
         </div>
-        <div class="stat-value"><span id="ph-value">—</span></div>
-        <div class="stat-range" id="ph-range">target —</div>
-      </div>
-      <div class="stat-card" id="card-tds">
-        <div class="stat-head">
-          <h2>TDS</h2>
-          <span id="tds-status" class="metric-status neutral">• No data</span>
+        <div class="stat-card" id="card-tds">
+          <div class="stat-head">
+            <h2>TDS</h2>
+            <span id="tds-status" class="metric-status neutral">• No data</span>
+          </div>
+          <div class="stat-value"><span id="tds-value">—</span><span class="unit">ppm</span></div>
+          <div class="stat-range" id="tds-range">target —</div>
         </div>
-        <div class="stat-value"><span id="tds-value">—</span><span class="unit">ppm</span></div>
-        <div class="stat-range" id="tds-range">target —</div>
-      </div>
-      <div class="stat-card" id="card-temp">
-        <div class="stat-head">
-          <h2>Temp</h2>
-          <span id="temp-status" class="metric-status neutral">• No data</span>
+        <div class="stat-card" id="card-temp">
+          <div class="stat-head">
+            <h2>Temp</h2>
+            <span id="temp-status" class="metric-status neutral">• No data</span>
+          </div>
+          <div class="stat-value"><span id="temp-value">—</span><span class="unit">°C</span></div>
+          <div class="stat-range" id="temp-range">target —</div>
         </div>
-        <div class="stat-value"><span id="temp-value">—</span><span class="unit">°C</span></div>
-        <div class="stat-range" id="temp-range">target —</div>
       </div>
+
+      <section class="controls-card">
+        <div class="controls-head">
+          <h2>Manual Controls</h2>
+          <span id="mode-indicator" class="badge mode-indicator">Mode —</span>
+        </div>
+        <div class="controls-actions">
+          <button id="mode-toggle-btn" class="btn btn-outline" type="button">Switch to MANUAL</button>
+          <button id="dose-nutrient-btn" class="btn btn-primary" type="button">Dose Nutrient</button>
+          <button id="dose-ph-btn" class="btn btn-danger" type="button">Dose pH-down</button>
+        </div>
+        <p class="controls-note">Each manual action requires confirmation.</p>
+      </section>
+
+      <section class="totals">
+        <div class="total-card">
+          <span class="total-label">Nutrient dosed (lifetime)</span>
+          <span class="total-value" id="nutrient-total">— mL</span>
+        </div>
+        <div class="total-card">
+          <span class="total-label">pH-down dosed (lifetime)</span>
+          <span class="total-value" id="ph-total">— mL</span>
+        </div>
+        <div class="total-card">
+          <span class="total-label">Last reading</span>
+          <span class="total-value" id="last-updated">—</span>
+        </div>
+      </section>
     </section>
 
-    <section class="controls-card">
-      <div class="controls-head">
-        <h2>Manual Controls</h2>
-        <span id="mode-indicator" class="badge mode-indicator">Mode —</span>
-      </div>
-      <div class="controls-actions">
-        <button id="mode-toggle-btn" class="btn btn-outline" type="button">Switch to MANUAL</button>
-        <button id="dose-nutrient-btn" class="btn btn-primary" type="button">Dose Nutrient</button>
-        <button id="dose-ph-btn" class="btn btn-danger" type="button">Dose pH-down</button>
-      </div>
-      <p class="controls-note">Each manual action requires confirmation.</p>
-    </section>
-
-    <section class="totals">
-      <div class="total-card">
-        <span class="total-label">Nutrient dosed (lifetime)</span>
-        <span class="total-value" id="nutrient-total">— mL</span>
-      </div>
-      <div class="total-card">
-        <span class="total-label">pH-down dosed (lifetime)</span>
-        <span class="total-value" id="ph-total">— mL</span>
-      </div>
-      <div class="total-card">
-        <span class="total-label">Last reading</span>
-        <span class="total-value" id="last-updated">—</span>
-      </div>
-    </section>
-
-    <section class="charts">
+    <section
+      id="tab-panel-history"
+      class="tab-panel"
+      role="tabpanel"
+      aria-labelledby="tab-history-btn"
+      tabindex="0"
+      hidden
+    >
       <div class="charts-toolbar">
-        <h2>History</h2>
-        <div class="range-selector" role="group" aria-label="History time range">
-          <button class="range-btn active" data-range="1h" type="button">1h</button>
-          <button class="range-btn" data-range="6h" type="button">6h</button>
-          <button class="range-btn" data-range="24h" type="button">24h</button>
-          <button class="range-btn" data-range="7d" type="button">7d</button>
+        <h2>Historical Analytics</h2>
+        <div class="toolbar-controls">
+          <div class="range-selector" role="group" aria-label="History time range">
+            <button class="range-btn active" data-range="1h" type="button">1h</button>
+            <button class="range-btn" data-range="6h" type="button">6h</button>
+            <button class="range-btn" data-range="24h" type="button">24h</button>
+            <button class="range-btn" data-range="7d" type="button">7d</button>
+          </div>
+          <div class="view-toggle" role="group" aria-label="History view">
+            <button class="view-btn active" data-view="chart" type="button">Chart</button>
+            <button class="view-btn" data-view="table" type="button">Table</button>
+          </div>
         </div>
       </div>
-      <div class="chart-card">
-        <h2>pH history</h2>
-        <canvas id="chart-ph"></canvas>
+
+      <div id="history-chart-view" class="charts">
+        <div class="chart-card">
+          <h2>pH history</h2>
+          <canvas id="chart-ph"></canvas>
+        </div>
+        <div class="chart-card">
+          <h2>TDS history</h2>
+          <canvas id="chart-tds"></canvas>
+        </div>
+        <div class="chart-card">
+          <h2>Temperature history</h2>
+          <canvas id="chart-temp"></canvas>
+        </div>
       </div>
-      <div class="chart-card">
-        <h2>TDS history</h2>
-        <canvas id="chart-tds"></canvas>
-      </div>
-      <div class="chart-card">
-        <h2>Temperature history</h2>
-        <canvas id="chart-temp"></canvas>
+
+      <div id="history-table-view" class="table-card hidden">
+        <div class="table-scroll">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>pH</th>
+                <th>TDS (ppm)</th>
+                <th>Temp (°C)</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr><td colspan="4" class="table-empty">No data yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-pager">
+          <button id="table-prev-btn" class="btn btn-outline btn-sm" type="button" disabled>Prev</button>
+          <span id="table-page-label" class="table-page-label">Page 1 of 1</span>
+          <button id="table-next-btn" class="btn btn-outline btn-sm" type="button" disabled>Next</button>
+        </div>
       </div>
     </section>
   </main>

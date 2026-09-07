@@ -12,6 +12,14 @@ const modeToggleBtn = document.getElementById("mode-toggle-btn");
 const doseNutrientBtn = document.getElementById("dose-nutrient-btn");
 const dosePhBtn = document.getElementById("dose-ph-btn");
 const rangeButtons = Array.from(document.querySelectorAll(".range-btn"));
+const viewButtons = Array.from(document.querySelectorAll(".view-btn"));
+const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+const historyChartViewEl = document.getElementById("history-chart-view");
+const historyTableViewEl = document.getElementById("history-table-view");
+const historyTableBodyEl = document.getElementById("history-table-body");
+const tablePrevBtn = document.getElementById("table-prev-btn");
+const tableNextBtn = document.getElementById("table-next-btn");
+const tablePageLabelEl = document.getElementById("table-page-label");
 
 const stats = {
   ph: {
@@ -56,8 +64,12 @@ let deviceRanges = null;
 let lastReadingAtMs = null;
 let currentMode = "—";
 let activeRange = "1h";
+let activeView = "chart";
 let previousAlertKeys = new Set();
 let isConnected = false;
+let lastHistoryRows = [];
+let tablePage = 1;
+const TABLE_PAGE_SIZE = 25;
 
 async function fetchJSON(path) {
   const res = await fetch(`${API_BASE}${path}`);
@@ -280,6 +292,30 @@ function getRangeClass(key) {
   btn.classList.add("active");
 }
 
+function setActiveView(view) {
+  activeView = view;
+  viewButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
+  historyChartViewEl.classList.toggle("hidden", view !== "chart");
+  historyTableViewEl.classList.toggle("hidden", view !== "table");
+  if (view === "chart") {
+    Object.values(charts).forEach((chart) => chart.resize());
+  }
+}
+
+function setActiveTab(tabName) {
+  tabButtons.forEach((btn) => {
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+    btn.tabIndex = isActive ? 0 : -1;
+  });
+  document.getElementById("tab-panel-live").hidden = tabName !== "live";
+  document.getElementById("tab-panel-history").hidden = tabName !== "history";
+  if (tabName === "history" && activeView === "chart") {
+    Object.values(charts).forEach((chart) => chart.resize());
+  }
+}
+
 async function loadDevice() {
   const device = await fetchJSON(`/api/devices/${DEVICE_ID}`);
   deviceRanges = device;
@@ -423,6 +459,48 @@ async function loadHistory() {
     chart.data.datasets[2].data = values;
     chart.update();
   });
+
+  lastHistoryRows = rows;
+  renderHistoryTable();
+}
+
+function metricCellHTML(metricKey, value) {
+  const metric = stats[metricKey];
+  const min = deviceRanges?.[metric.minField];
+  const max = deviceRanges?.[metric.maxField];
+  if (min == null || max == null) {
+    return `<span class="table-value">${formatMetricValue(metric, value)}</span>`;
+  }
+  const state = evaluateMetricState(metric, value, min, max, null);
+  return `<span class="table-value">${state.valueText}</span><span class="table-pill metric-status ${state.state}">${state.label}</span>`;
+}
+
+function renderHistoryTable() {
+  const totalRows = lastHistoryRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / TABLE_PAGE_SIZE));
+  tablePage = Math.min(Math.max(1, tablePage), totalPages);
+
+  if (totalRows === 0) {
+    historyTableBodyEl.innerHTML = `<tr><td colspan="4" class="table-empty">No data yet.</td></tr>`;
+  } else {
+    const start = (tablePage - 1) * TABLE_PAGE_SIZE;
+    const pageRows = lastHistoryRows.slice(start, start + TABLE_PAGE_SIZE);
+    historyTableBodyEl.innerHTML = pageRows
+      .map((row) => {
+        const time = new Date(row.recorded_at).toLocaleString();
+        return `<tr>
+          <td>${time}</td>
+          <td>${metricCellHTML("ph", row.ph)}</td>
+          <td>${metricCellHTML("tds", row.tds)}</td>
+          <td>${metricCellHTML("temp", row.temp_c)}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  tablePageLabelEl.textContent = `Page ${tablePage} of ${totalPages}`;
+  tablePrevBtn.disabled = tablePage <= 1;
+  tableNextBtn.disabled = tablePage >= totalPages;
 }
 
 async function refresh() {
@@ -491,6 +569,7 @@ function wireUI() {
       const selected = btn.dataset.range;
       if (!selected || selected === activeRange) return;
       activeRange = selected;
+      tablePage = 1;
       getRangeClass(selected);
       try {
         await loadHistory();
@@ -499,11 +578,44 @@ function wireUI() {
       }
     });
   });
+
+  viewButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const selected = btn.dataset.view;
+      if (!selected || selected === activeView) return;
+      setActiveView(selected);
+    });
+  });
+
+  tabButtons.forEach((btn, index) => {
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+    btn.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+      event.preventDefault();
+      const nextIndex = event.key === "ArrowRight"
+        ? (index + 1) % tabButtons.length
+        : (index - 1 + tabButtons.length) % tabButtons.length;
+      const nextBtn = tabButtons[nextIndex];
+      nextBtn.focus();
+      setActiveTab(nextBtn.dataset.tab);
+    });
+  });
+
+  tablePrevBtn.addEventListener("click", () => {
+    if (tablePage <= 1) return;
+    tablePage -= 1;
+    renderHistoryTable();
+  });
+
+  tableNextBtn.addEventListener("click", () => {
+    tablePage += 1;
+    renderHistoryTable();
+  });
 }
 
 async function init() {
-  charts.ph = makeChart("ph", "chart-ph", "pH", "#2f9e44");
-  charts.tds = makeChart("tds", "chart-tds", "TDS", "#1971c2");
+  charts.ph = makeChart("ph", "chart-ph", "pH", "#1f8a3d");
+  charts.tds = makeChart("tds", "chart-tds", "TDS", "#3b5bdb");
   charts.temp = makeChart("temp", "chart-temp", "Temp °C", "#e8590c");
   wireUI();
   getRangeClass(activeRange);
