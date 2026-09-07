@@ -7,12 +7,40 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="intro-screen" class="intro-screen">
+    <img src="logos/Intro.svg" alt="HydroFi" class="intro-logo" />
+  </div>
+  <script>
+    (function () {
+      var intro = document.getElementById("intro-screen");
+      var shown;
+      try {
+        shown = sessionStorage.getItem("hydrofi_intro_shown");
+      } catch (err) {
+        shown = null;
+      }
+      if (shown) {
+        intro.classList.add("intro-skip");
+        return;
+      }
+      try {
+        sessionStorage.setItem("hydrofi_intro_shown", "1");
+      } catch (err) {}
+      setTimeout(function () {
+        intro.classList.add("intro-hide");
+      }, 3000);
+      intro.addEventListener("transitionend", function () {
+        intro.classList.add("intro-skip");
+      });
+    })();
+  </script>
+
   <header class="topbar">
     <div class="brand" aria-label="HydroFi brand">
       <img src="logos/Hydrofi.svg" alt="HydroFi logo" class="brand-logo" />
       <div class="brand-copy">
         <span class="brand-name">HydroFi</span>
-        <span class="brand-tag">Smart grow control</span>
+        <span class="brand-tag">AGRITECH SOLUTIONS</span>
       </div>
     </div>
     <div class="device-info">

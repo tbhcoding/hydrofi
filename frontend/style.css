@@ -20,6 +20,33 @@
   box-sizing: border-box;
 }
 
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, var(--bg) 0%, #f9fdff 100%);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.intro-logo {
+  width: min(32vw, 220px);
+  height: auto;
+  filter: drop-shadow(0 12px 32px rgba(15, 123, 165, 0.22));
+}
+
+.intro-screen.intro-hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-screen.intro-skip {
+  display: none;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
