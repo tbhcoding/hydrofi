@@ -73,3 +73,26 @@ Because current backend routes for control actions are not present, control endp
 - bright cyan/blue accents to echo the logo
 - green and amber for status/UI balance
 ### 3. Kept the overall design cohesive with softer shadows, rounded cards, and cleaner contrast so it complements the logo instead of competing with it.
+
+---
+# UPDATE NO. 3
+
+---
+
+## What changed:
+
+**Files changed:**
+- `index.html`
+- `style.css`
+
+### 1. Added an intro splash screen
+- New full-screen overlay (`#intro-screen`) shows `logos/Intro.svg` centered on load, sitting above the dashboard in `index.html`.
+- Displays for 3 seconds, then fades out over 0.5s and is removed from layout (`display: none`) once the transition ends.
+- Shown once per browser session (`sessionStorage`): reappears on a fresh tab/session but not on refresh or in-tab navigation. Falls back gracefully (just shows the intro) if `sessionStorage` is unavailable.
+
+### 2. Sized and styled to match the dashboard
+- Logo capped at `min(32vw, 220px)` so it reads as a splash mark, not a full-page graphic.
+- Background reuses the same gradient as the dashboard body so the fade-out feels seamless rather than a jump cut.
+
+## Validation
+- Verified via headless-browser screenshots at 0s, 2s, and 4.2s: intro visible and correctly sized at load, still visible mid-delay, fully gone (dashboard visible) after the fade completes.
