@@ -16,6 +16,11 @@ const dosePhBtn = document.getElementById("dose-ph-btn");
 const rangeButtons = Array.from(document.querySelectorAll(".range-btn"));
 const viewButtons = Array.from(document.querySelectorAll(".view-btn"));
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+const tipsListEl = document.getElementById("tips-list");
+const chatMessagesEl = document.getElementById("chat-messages");
+const chatFormEl = document.getElementById("chat-form");
+const chatInputEl = document.getElementById("chat-input");
 const historyChartViewEl = document.getElementById("history-chart-view");
 const historyTableViewEl = document.getElementById("history-table-view");
 const historyTableBodyEl = document.getElementById("history-table-body");
@@ -68,6 +73,7 @@ let currentMode = "—";
 let activeRange = "1h";
 let activeView = "chart";
 let previousAlertKeys = new Set();
+let lastMetricStates = {};
 let isConnected = false;
 let lastHistoryRows = [];
 let tablePage = 1;
@@ -99,6 +105,7 @@ function setConnectionStatus(state, detail) {
   isConnected = state !== "error";
   connectionStatusTextEl.textContent = detail || state;
   connectionStatusEl.className = `status status-${state}`;
+  renderTips();
 }
 
 function formatRelativeAge(msSinceUpdate) {
@@ -311,8 +318,9 @@ function setActiveTab(tabName) {
     btn.setAttribute("aria-selected", String(isActive));
     btn.tabIndex = isActive ? 0 : -1;
   });
-  document.getElementById("tab-panel-live").hidden = tabName !== "live";
-  document.getElementById("tab-panel-history").hidden = tabName !== "history";
+  tabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.tab !== tabName;
+  });
   if (tabName === "history" && activeView === "chart") {
     Object.values(charts).forEach((chart) => chart.resize());
   }
@@ -339,6 +347,7 @@ async function loadLatest() {
       const value = reading[metric.readingField];
       const state = evaluateMetricState(metric, value, min, max, readingAgeMs);
       updateMetricUI(key, state);
+      lastMetricStates[key] = state;
       if (state.alert) alerts.push(state.alert);
     });
 
@@ -346,21 +355,25 @@ async function loadLatest() {
     lastUpdatedEl.textContent = lastReadingAtMs ? readingAt.toLocaleString() : "—";
     updateFreshnessStatus();
     setConnectionStatus("ok", "connected");
+    renderTips();
   } catch (err) {
     if (err.message.includes("no readings")) {
       setConnectionStatus("warn", "no readings yet");
       lastReadingAtMs = null;
       updateFreshnessStatus();
       Object.entries(stats).forEach(([key, metric]) => {
-        updateMetricUI(key, {
+        const state = {
           state: "offline",
           label: "NO DATA",
           valueText: "—",
           min: deviceRanges[metric.minField],
           max: deviceRanges[metric.maxField],
-        });
+        };
+        updateMetricUI(key, state);
+        lastMetricStates[key] = state;
       });
       renderAlerts([{ key: "global-no-readings", severity: "warn", message: "No readings available yet" }]);
+      renderTips();
     } else {
       throw err;
     }
@@ -541,6 +554,111 @@ async function sendManualCommand(type) {
   showToast(`Manual command sent: ${actionLabel}.`, "warn");
 }
 
+function buildTips() {
+  if (!isConnected) {
+    return [{ severity: "error", text: "Can't reach the backend right now. Check your network connection or the backend service status." }];
+  }
+  if (!lastReadingAtMs) {
+    return [{ severity: "neutral", text: "Waiting for the device's first reading. Tips will appear once data comes in." }];
+  }
+
+  const tips = [];
+  Object.entries(stats).forEach(([key, metric]) => {
+    const state = lastMetricStates[key];
+    if (!state) return;
+    const min = deviceRanges?.[metric.minField];
+    const max = deviceRanges?.[metric.maxField];
+    const range = min != null && max != null ? `${min}–${max}` : "the target range";
+    if (state.state === "ok") {
+      tips.push({ severity: "ok", text: `${metric.label} is steady at ${state.valueText}, right in the ${range} target.` });
+    } else if (state.state === "warn") {
+      tips.push({ severity: "warn", text: `${metric.label} is trending ${state.label.toLowerCase()} (${state.valueText}). Keep an eye on it before it drifts outside ${range}.` });
+    } else if (state.state === "error") {
+      tips.push({ severity: "error", text: `${metric.label} is ${state.label} at ${state.valueText}, outside ${range}. Consider a manual correction.` });
+    } else if (state.state === "offline") {
+      tips.push({ severity: "neutral", text: `${metric.label}: ${state.label.toLowerCase()}. Check the sensor connection.` });
+    }
+  });
+
+  if (currentMode === "MANUAL") {
+    tips.push({ severity: "warn", text: "Device is in MANUAL mode, so out-of-range readings won't be auto-corrected. Switch back to AUTO when you're done." });
+  }
+
+  if (freshnessStatusEl.classList.contains("stale")) {
+    tips.push({ severity: "warn", text: "The latest reading is older than expected. Confirm the device is powered on and posting." });
+  }
+
+  tips.push({ severity: "neutral", text: "Reminder: dosing totals track pump activity, not tank volume — check your reservoir level physically now and then." });
+
+  return tips;
+}
+
+function renderTips() {
+  if (!tipsListEl) return;
+  const tips = buildTips();
+  tipsListEl.innerHTML = tips.map((tip) => `<li class="tip-item ${tip.severity}">${tip.text}</li>`).join("");
+}
+
+function addChatMessage(text, sender) {
+  const div = document.createElement("div");
+  div.className = `chat-msg ${sender}`;
+  div.textContent = text;
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function formatMetricAnswer(key) {
+  const metric = stats[key];
+  const state = lastMetricStates[key];
+  if (!state) return `I don't have a ${metric.label} reading yet.`;
+  const min = deviceRanges?.[metric.minField];
+  const max = deviceRanges?.[metric.maxField];
+  const range = min != null && max != null ? `${min}–${max}` : "unknown";
+  if (state.state === "offline") {
+    return `${metric.label}: no current reading (${state.label.toLowerCase()}). Target range is ${range}.`;
+  }
+  return `${metric.label} is currently ${state.valueText} (${state.label}). Target range is ${range}.`;
+}
+
+function answerQuestion(raw) {
+  const q = raw.toLowerCase();
+
+  if (!isConnected) {
+    return "I can't reach the backend right now, so I don't have live data to check.";
+  }
+  if (/\b(hi|hello|hey)\b/.test(q)) {
+    return "Hi! Ask me about your pH, TDS, temperature, mode, dosing totals, or whether everything's okay.";
+  }
+  if (/\bhelp\b|what can you/.test(q)) {
+    return 'I can answer things like "what\'s my pH?", "is TDS okay?", "what mode am I in?", "how much nutrient has been dosed?", or "is everything fine?". I\'m a simple rule-based assistant, not a live AI — I only know what\'s on this dashboard.';
+  }
+  if (/\bph\b/.test(q) && !q.includes("ph-down") && !q.includes("ph down")) {
+    return formatMetricAnswer("ph");
+  }
+  if (/\btds\b|nutrient level|concentration/.test(q)) {
+    return formatMetricAnswer("tds");
+  }
+  if (/\btemp(erature)?\b/.test(q)) {
+    return formatMetricAnswer("temp");
+  }
+  if (/\bmode\b|\bauto\b|\bmanual\b/.test(q)) {
+    return `The device is currently in ${currentMode} mode. ${currentMode === "MANUAL" ? "Automatic corrections are paused until you switch back to AUTO." : "It will auto-correct out-of-range readings."}`;
+  }
+  if (/connect|online|offline|backend/.test(q)) {
+    return isConnected ? "The dashboard is connected to the backend." : "The dashboard can't currently reach the backend.";
+  }
+  if (/total|dosed|how much/.test(q)) {
+    return `Lifetime totals: ${nutrientTotalEl.textContent} nutrient, ${phTotalEl.textContent} pH-down.`;
+  }
+  if (/okay|alright|fine|problem|wrong|issue|alert/.test(q)) {
+    const tips = buildTips();
+    const issues = tips.filter((t) => t.severity === "warn" || t.severity === "error");
+    if (issues.length === 0) return "Everything looks good right now — all readings are within target range.";
+    return `Heads up: ${issues.map((t) => t.text).join(" ")}`;
+  }
+  return 'I\'m a simple rule-based assistant — I can answer questions about your pH, TDS, temperature, mode, connection, and dosing totals. Try "what\'s my pH?" or "is everything okay?"';
+}
+
 function wireUI() {
   modeToggleBtn.addEventListener("click", async () => {
     try {
@@ -612,6 +730,16 @@ function wireUI() {
   tableNextBtn.addEventListener("click", () => {
     tablePage += 1;
     renderHistoryTable();
+  });
+
+  chatFormEl.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const text = chatInputEl.value.trim();
+    if (!text) return;
+    addChatMessage(text, "user");
+    chatInputEl.value = "";
+    const reply = answerQuestion(text);
+    window.setTimeout(() => addChatMessage(reply, "bot"), 300);
   });
 }
 
