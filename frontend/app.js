@@ -4,6 +4,8 @@ const connectionStatusEl = document.getElementById("connection-status");
 const connectionStatusTextEl = document.getElementById("connection-status-text");
 const freshnessStatusEl = document.getElementById("freshness-status");
 const freshnessStatusTextEl = document.getElementById("freshness-status-text");
+const liveClockTimeEl = document.getElementById("live-clock-time");
+const liveClockDateEl = document.getElementById("live-clock-date");
 const lastUpdatedEl = document.getElementById("last-updated");
 const nutrientTotalEl = document.getElementById("nutrient-total");
 const phTotalEl = document.getElementById("ph-total");
@@ -118,6 +120,26 @@ function formatRelativeAge(msSinceUpdate) {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h ago`;
+}
+
+function updateLiveClock() {
+  const now = new Date();
+  liveClockTimeEl.textContent = now.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  liveClockDateEl.textContent = now.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function tickClock() {
+  updateLiveClock();
+  updateFreshnessStatus();
 }
 
 function updateFreshnessStatus() {
@@ -762,6 +784,7 @@ async function init() {
   charts.temp = makeChart("temp", "chart-temp", "Temp °C", "#e8590c");
   wireUI();
   getRangeClass(activeRange);
+  updateLiveClock();
   updateFreshnessStatus();
 
   try {
@@ -772,7 +795,7 @@ async function init() {
   }
 
   await refresh();
-  window.setInterval(updateFreshnessStatus, 1000);
+  window.setInterval(tickClock, 1000);
   setInterval(refresh, REFRESH_INTERVAL_MS);
 }
 

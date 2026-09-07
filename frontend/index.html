@@ -68,14 +68,21 @@
       <span id="device-name">—</span>
       <span id="device-mode" class="badge mode-pill">—</span>
     </div>
-    <div class="connection-wrap">
-      <div id="connection-status" class="status">
-        <svg class="icon" aria-hidden="true"><use href="#icon-wifi" xlink:href="#icon-wifi" /></svg>
-        <span id="connection-status-text">connecting…</span>
+    <div class="header-meta">
+      <div class="live-clock">
+        <span id="live-clock-time">--:--:--</span>
+        <span class="live-clock-sep">·</span>
+        <span id="live-clock-date">—</span>
       </div>
-      <div id="freshness-status" class="freshness">
-        <svg class="icon" aria-hidden="true"><use href="#icon-clock" xlink:href="#icon-clock" /></svg>
-        <span id="freshness-status-text">last updated —</span>
+      <div class="connection-row">
+        <div id="connection-status" class="status">
+          <svg class="icon" aria-hidden="true"><use href="#icon-wifi" xlink:href="#icon-wifi" /></svg>
+          <span id="connection-status-text">connecting…</span>
+        </div>
+        <div id="freshness-status" class="freshness">
+          <svg class="icon" aria-hidden="true"><use href="#icon-clock" xlink:href="#icon-clock" /></svg>
+          <span id="freshness-status-text">last updated —</span>
+        </div>
       </div>
     </div>
   </header>
