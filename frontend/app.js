@@ -451,7 +451,7 @@ function makeChart(metricKey, canvasId, label, color) {
       animation: false,
       scales: {
         x: {
-          ticks: { maxRotation: 0, autoSkip: true },
+          ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
           grid: { display: true, color: "#edf2f7" },
         },
         y: {
@@ -462,7 +462,10 @@ function makeChart(metricKey, canvasId, label, color) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            title: (items) => items[0]?.label || "",
+            title: (items) => {
+              const item = items[0];
+              return item?.chart.fullLabels?.[item.dataIndex] || item?.label || "";
+            },
             label: (context) => {
               if (context.datasetIndex !== 2) return null;
               const metric = stats[metricKey];
@@ -481,10 +484,22 @@ function makeChart(metricKey, canvasId, label, color) {
   });
 }
 
+function formatChartTimestamp(date, includeDate) {
+  const time = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (!includeDate) return time;
+  const day = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${day}, ${time}`;
+}
+
 async function loadHistory() {
   const rows = await fetchJSON(`/api/readings/history?device_id=${DEVICE_ID}&limit=${getHistoryLimit()}`);
   const chronological = [...rows].reverse();
-  const labels = chronological.map((r) => new Date(r.recorded_at).toLocaleString());
+  const spansMultipleDays =
+    chronological.length > 0 &&
+    new Date(chronological[0].recorded_at).toDateString() !==
+      new Date(chronological[chronological.length - 1].recorded_at).toDateString();
+  const labels = chronological.map((r) => formatChartTimestamp(new Date(r.recorded_at), spansMultipleDays));
+  const fullLabels = chronological.map((r) => new Date(r.recorded_at).toLocaleString());
 
   Object.entries(stats).forEach(([key, metric]) => {
     const chart = charts[key];
@@ -494,6 +509,7 @@ async function loadHistory() {
     const maxLine = chronological.map(() => deviceRanges[metric.maxField]);
 
     chart.data.labels = labels;
+    chart.fullLabels = fullLabels;
     chart.data.datasets[0].data = minLine;
     chart.data.datasets[1].data = maxLine;
     chart.data.datasets[2].data = values;
