@@ -1002,6 +1002,17 @@ function answerQuestion(raw) {
   };
 }
 
+async function askAssistant(question) {
+  try {
+    const result = await postJSON("/api/assistant/chat", { device_id: DEVICE_ID, question });
+    return { text: result.text, severity: result.severity || "neutral" };
+  } catch (err) {
+    // AI assistant unavailable (not configured, network error, etc.) -- fall back
+    // to the local rule-based answers so the chat still works.
+    return answerQuestion(question);
+  }
+}
+
 function wireUI() {
   modeToggleBtn.addEventListener("click", async () => {
     try {
@@ -1085,14 +1096,22 @@ function wireUI() {
     tipsShowBtn.hidden = true;
   });
 
-  chatFormEl.addEventListener("submit", (event) => {
+  chatFormEl.addEventListener("submit", async (event) => {
     event.preventDefault();
     const text = chatInputEl.value.trim();
     if (!text) return;
     addChatMessage(text, "user");
     chatInputEl.value = "";
-    const reply = answerQuestion(text);
-    window.setTimeout(() => addChatMessage(reply.text, "bot", reply.severity), 300);
+
+    const thinkingEl = document.createElement("div");
+    thinkingEl.className = "chat-msg bot neutral";
+    thinkingEl.textContent = "Thinking…";
+    chatMessagesEl.appendChild(thinkingEl);
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+
+    const reply = await askAssistant(text);
+    thinkingEl.remove();
+    addChatMessage(reply.text, "bot", reply.severity);
   });
 }
 
