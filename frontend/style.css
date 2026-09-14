@@ -774,6 +774,50 @@ main {
   display: none;
 }
 
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(11, 40, 22, 0.32);
+  backdrop-filter: blur(2px);
+}
+
+.confirm-overlay.hidden {
+  display: none;
+}
+
+.confirm-modal {
+  width: min(380px, 100%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 44px rgba(11, 91, 31, 0.22);
+}
+
+.confirm-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: var(--primary-strong);
+}
+
+.confirm-modal-message {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 .toast-container {
   position: fixed;
   right: 1rem;
@@ -927,6 +971,26 @@ main {
   background: var(--accent-soft);
   color: var(--text);
   border-bottom-left-radius: 4px;
+  border-left: 4px solid var(--border);
+}
+
+.chat-msg.bot.ok {
+  border-left-color: var(--green);
+  background: rgba(47, 167, 111, 0.1);
+}
+
+.chat-msg.bot.warn {
+  border-left-color: var(--amber);
+  background: rgba(244, 169, 74, 0.14);
+}
+
+.chat-msg.bot.error {
+  border-left-color: var(--red);
+  background: rgba(233, 107, 106, 0.1);
+}
+
+.chat-msg.bot.neutral {
+  border-left-color: var(--border);
 }
 
 .chat-msg.user {

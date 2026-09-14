@@ -32,7 +32,16 @@ const historyTableBodyEl = document.getElementById("history-table-body");
 const tablePrevBtn = document.getElementById("table-prev-btn");
 const tableNextBtn = document.getElementById("table-next-btn");
 const tablePageLabelEl = document.getElementById("table-page-label");
+const confirmOverlayEl = document.getElementById("confirm-overlay");
+const confirmModalTitleEl = document.getElementById("confirm-modal-title");
+const confirmModalMessageEl = document.getElementById("confirm-modal-message");
+const confirmModalOkBtn = document.getElementById("confirm-modal-ok");
+const confirmModalCancelBtn = document.getElementById("confirm-modal-cancel");
 
+// highCorrection/lowCorrection describe what actually happens on this hardware when a
+// reading is above/below range: the nutrient pump can only raise TDS and the pH-down
+// pump can only lower pH (see backend/main.py AUTO_DOSE comments) -- there is no pump
+// for the opposite direction on either metric, and no pump at all for temperature.
 const stats = {
   ph: {
     label: "pH",
@@ -45,6 +54,16 @@ const stats = {
     readingField: "ph",
     decimals: 2,
     zeroOffline: true,
+    highCorrection: {
+      automatic: true,
+      pumpLabel: "pH-down pump",
+      consequence: "High pH locks out iron, manganese, and phosphorus, so roots can't absorb nutrients even if they're in the reservoir.",
+    },
+    lowCorrection: {
+      automatic: false,
+      consequence: "Low pH stresses roots and can push some micronutrients to toxic concentrations.",
+      manualAction: "add a pH-up buffer solution to the reservoir by hand -- there's no pump that raises pH",
+    },
   },
   tds: {
     label: "TDS",
@@ -57,6 +76,16 @@ const stats = {
     readingField: "tds",
     decimals: 0,
     zeroOffline: true,
+    highCorrection: {
+      automatic: false,
+      consequence: "Excess TDS raises salinity around the roots, which can cause nutrient burn and slow water uptake.",
+      manualAction: "dilute the reservoir with fresh water -- there's no pump that lowers TDS",
+    },
+    lowCorrection: {
+      automatic: true,
+      pumpLabel: "nutrient pump",
+      consequence: "Low TDS means the plants are running short on nutrients, which shows up as pale leaves and slow growth.",
+    },
   },
   temp: {
     label: "Temp",
@@ -69,8 +98,164 @@ const stats = {
     readingField: "temp_c",
     decimals: 1,
     zeroOffline: false,
+    highCorrection: {
+      automatic: false,
+      consequence: "Warm water holds less dissolved oxygen, raising the risk of root rot and algae growth.",
+      manualAction: "improve ventilation or shade the reservoir from direct sun -- there's no pump or cooling hardware for this",
+    },
+    lowCorrection: {
+      automatic: false,
+      consequence: "Cold water slows nutrient uptake and can shock the roots.",
+      manualAction: "add reservoir insulation or a water heater -- there's no pump or heating hardware for this",
+    },
   },
 };
+
+// Crop reference data condensed from ZipGrow's "Best Crops for Hydroponics Guide" (2020).
+// ppm ranges use the ppm-500/TDS standard, the same standard most North American TDS
+// meters (and this device's TDS reading) use, so they compare directly with no conversion.
+const CROP_GUIDE = [
+  {
+    name: "Arugula", aliases: ["arugula", "rocket"], beginner: true, coolRegion: true,
+    ph: [5.5, 6.5], ppm: [400, 700], tempF: [50, 75], idealTempF: 65,
+    harvestWeeks: "about 6-8 weeks from seed",
+    blurb: "A peppery, fast-growing salad green. Rarely bothered by pests -- easy for beginners.",
+  },
+  {
+    name: "Bok Choy", aliases: ["bok choy", "pak choi"], beginner: true, coolRegion: true, warmRegion: true,
+    ph: [5.5, 6.5], ppm: [750, 1250], tempF: [55, 75], idealTempF: 65,
+    harvestWeeks: "about 7-9 weeks from seed",
+    blurb: "A crunchy Asian cabbage where both the stalk and leaf are eaten. Tolerates a wider range of conditions than most greens.",
+  },
+  {
+    name: "Kale", aliases: ["kale"], beginner: true, coolRegion: true,
+    ph: [5.5, 6.5], ppm: [800, 1250], tempF: [45, 85], idealTempF: 65,
+    harvestWeeks: "about 6-8 weeks from seed",
+    blurb: "A hardy, nutrient-dense green that tolerates a wide temperature range. Harvest a few leaves at a time rather than the whole plant.",
+  },
+  {
+    name: "Lettuce", aliases: ["lettuce"], beginner: true, coolRegion: true,
+    ph: [5.5, 6.5], ppm: [500, 800], tempF: [45, 75], idealTempF: 65,
+    harvestWeeks: "about 5-6 weeks from transplant (9-11 weeks from seed)",
+    blurb: "The classic salad crop -- fast, low-maintenance, and always in demand. Harvest the whole head at once.",
+  },
+  {
+    name: "Mustard Greens", aliases: ["mustard greens", "mustard"], beginner: true, coolRegion: true,
+    ph: [5.5, 6.5], ppm: [600, 1200], tempF: [50, 75], idealTempF: 65,
+    harvestWeeks: "about 6-8 weeks from seed",
+    blurb: "A spicy, radish-flavored green related to kale and cabbage. Harvest a portion at a time so the plant keeps producing.",
+  },
+  {
+    name: "Swiss Chard", aliases: ["swiss chard", "chard"], beginner: true,
+    ph: [5.5, 6.5], ppm: [800, 1150], tempF: [55, 75], idealTempF: 65,
+    harvestWeeks: "about 6-8 weeks from seed",
+    blurb: "A mild, buttery green with colorful stems. Cold-hardy and easy to regrow -- only take about a third of the plant per harvest.",
+  },
+  {
+    name: "Basil", aliases: ["basil"], warmRegion: true,
+    ph: [5.5, 6.5], ppm: [800, 1100], tempF: [65, 90], idealTempF: 75,
+    harvestWeeks: "about 7-9 weeks from seed",
+    blurb: "A warmth-loving herb with big, fragrant harvests. Prune the growing tip to encourage bushier growth.",
+  },
+  {
+    name: "Chives", aliases: ["chives"], beginner: true, lowWater: true,
+    ph: [5.5, 6.5], ppm: [800, 1100], tempF: [55, 80], idealTempF: 70,
+    harvestWeeks: "about 10-12 weeks (grows faster from root divisions than seed)",
+    blurb: "A tough, low-maintenance herb that shrugs off temperature swings and short dry spells -- great for beginners.",
+  },
+  {
+    name: "Cilantro", aliases: ["cilantro", "coriander"], coolRegion: true, lowWater: true,
+    ph: [5.5, 6.5], ppm: [600, 1000], tempF: [50, 80], idealTempF: 65,
+    harvestWeeks: "about 7-9 weeks from seed",
+    blurb: "Tricky in heat -- it bolts (shoots up a bitter flower stalk) easily when it gets too warm, so keep it cool.",
+  },
+  {
+    name: "Fennel", aliases: ["fennel"], beginner: true, coolRegion: true, lowWater: true,
+    ph: [5.5, 6.5], ppm: [500, 900], tempF: [55, 75], idealTempF: 65,
+    harvestWeeks: "about 7-10 weeks from seed",
+    blurb: "A mildly sweet, anise-flavored herb that prefers lighter nutrient strength than most. Handles heat, cold, and drought well, but not frost.",
+  },
+  {
+    name: "Mint", aliases: ["mint", "spearmint", "peppermint"], beginner: true, coolRegion: true,
+    ph: [5.5, 6.5], ppm: [800, 1300], tempF: [55, 75], idealTempF: 70,
+    harvestWeeks: "about 8-10 weeks (faster from cuttings than seed)",
+    blurb: "A vigorous, easy-to-grow herb best started from a cutting rather than seed.",
+  },
+  {
+    name: "Oregano", aliases: ["oregano"], warmRegion: true, lowWater: true,
+    ph: [5.5, 6.5], ppm: [750, 1000], tempF: [55, 80], idealTempF: 70,
+    harvestWeeks: "about 7-9 weeks from seed",
+    blurb: "A bushy, strong-flavored herb. Its fuzzy leaves can struggle in high humidity, so good airflow helps.",
+  },
+  {
+    name: "Parsley", aliases: ["parsley"],
+    ph: [5.5, 6.5], ppm: [700, 1200], tempF: [55, 80], idealTempF: 70,
+    harvestWeeks: "about 10-11 weeks from seed",
+    blurb: "A tolerant, easy-going herb that handles a wide range of conditions and cold snaps well.",
+  },
+  {
+    name: "Rosemary", aliases: ["rosemary"],
+    ph: [5.5, 6.5], ppm: [600, 900], tempF: [60, 80], idealTempF: 75,
+    harvestWeeks: "about 10-12 weeks (best started from a cutting, not seed)",
+    blurb: "Prefers to dry out a bit between waterings and is best grown from a cutting -- seeds are slow and unreliable.",
+  },
+  {
+    name: "Strawberries", aliases: ["strawberry", "strawberries"],
+    ph: [5.5, 6.5], ppm: [400, 700], tempF: [65, 75], idealTempF: 70,
+    harvestWeeks: "about 7-10 weeks from rootstock to first harvest",
+    blurb: "The easiest fruiting crop to grow this way -- best started from rootstock (runners) rather than seed, and prone to pests like spider mites.",
+  },
+];
+
+function fahrenheitToCelsius(f) {
+  return Math.round(((f - 32) * 5) / 9 * 10) / 10;
+}
+
+function rangesOverlap(a, b) {
+  return a[0] <= b[1] && b[0] <= a[1];
+}
+
+function findCropInText(text) {
+  return CROP_GUIDE.find((crop) => crop.aliases.some((alias) => new RegExp(`\\b${alias}\\b`).test(text)));
+}
+
+function describeCrop(crop) {
+  const tempC = crop.tempF.map(fahrenheitToCelsius);
+  const idealC = fahrenheitToCelsius(crop.idealTempF);
+  return `${crop.name}: ${crop.blurb} It likes pH ${crop.ph[0]}–${crop.ph[1]}, nutrient strength (TDS) around ${crop.ppm[0]}–${crop.ppm[1]} ppm, and water temp ${tempC[0]}–${tempC[1]}°C (ideally near ${idealC}°C). First harvest is ${crop.harvestWeeks}.`;
+}
+
+function compareCropToDeviceRanges(crop) {
+  const phFits = rangesOverlap(crop.ph, [deviceRanges.ph_min, deviceRanges.ph_max]);
+  const tdsFits = rangesOverlap(crop.ppm, [deviceRanges.tds_min, deviceRanges.tds_max]);
+  if (phFits && tdsFits) {
+    return {
+      text: `Yes — ${crop.name} should do well with your current target range (pH ${deviceRanges.ph_min}–${deviceRanges.ph_max}, TDS ${deviceRanges.tds_min}–${deviceRanges.tds_max} ppm).`,
+      severity: "ok",
+    };
+  }
+  const mismatches = [];
+  if (!phFits) mismatches.push(`pH (it wants ${crop.ph[0]}–${crop.ph[1]}, you're set to ${deviceRanges.ph_min}–${deviceRanges.ph_max})`);
+  if (!tdsFits) mismatches.push(`nutrient strength (it wants ${crop.ppm[0]}–${crop.ppm[1]} ppm, you're set to ${deviceRanges.tds_min}–${deviceRanges.tds_max} ppm)`);
+  return { text: `${crop.name} might struggle with your current settings — mismatch on ${mismatches.join(" and ")}.`, severity: "warn" };
+}
+
+function suggestCropsForCurrentRange() {
+  if (!deviceRanges) return { text: "I don't have your target ranges yet, so I can't suggest crops.", severity: "neutral" };
+  const phRange = [deviceRanges.ph_min, deviceRanges.ph_max];
+  const tdsRange = [deviceRanges.tds_min, deviceRanges.tds_max];
+  const fits = CROP_GUIDE.filter((crop) => rangesOverlap(crop.ph, phRange) && rangesOverlap(crop.ppm, tdsRange));
+  if (fits.length === 0) {
+    return {
+      text: `None of the crops in my guide quite match your current target range (pH ${phRange[0]}–${phRange[1]}, TDS ${tdsRange[0]}–${tdsRange[1]} ppm) — you may be dialed in for something more specialized.`,
+      severity: "neutral",
+    };
+  }
+  return {
+    text: `Based on your current target range (pH ${phRange[0]}–${phRange[1]}, TDS ${tdsRange[0]}–${tdsRange[1]} ppm), good fits from my guide are: ${fits.map((c) => c.name).join(", ")}.`,
+    severity: "neutral",
+  };
+}
 
 let deviceRanges = null;
 let lastReadingAtMs = null;
@@ -274,6 +459,38 @@ function showToast(message, severity = "warn") {
     toast.remove();
   }, 6000);
 }
+
+let confirmResolve = null;
+
+function closeConfirm(result) {
+  confirmOverlayEl.classList.add("hidden");
+  if (confirmResolve) {
+    confirmResolve(result);
+    confirmResolve = null;
+  }
+}
+
+function showConfirm(message, { title = "Confirm action", confirmLabel = "Confirm", danger = false } = {}) {
+  confirmModalTitleEl.textContent = title;
+  confirmModalMessageEl.textContent = message;
+  confirmModalOkBtn.textContent = confirmLabel;
+  confirmModalOkBtn.className = `btn ${danger ? "btn-danger" : "btn-primary"}`;
+  confirmOverlayEl.classList.remove("hidden");
+  confirmModalOkBtn.focus();
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+  });
+}
+
+confirmModalOkBtn.addEventListener("click", () => closeConfirm(true));
+confirmModalCancelBtn.addEventListener("click", () => closeConfirm(false));
+confirmOverlayEl.addEventListener("click", (event) => {
+  if (event.target === confirmOverlayEl) closeConfirm(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (confirmOverlayEl.classList.contains("hidden")) return;
+  if (event.key === "Escape") closeConfirm(false);
+});
 
 function renderAlerts(alerts) {
   if (alerts.length === 0) {
@@ -571,7 +788,11 @@ async function sendManualCommand(type) {
   const endpoints = CONTROL_ENDPOINTS || {};
   if (type === "mode") {
     const targetMode = currentMode === "MANUAL" ? "AUTO" : "MANUAL";
-    if (!window.confirm(`Switch device to ${targetMode} mode?`)) return;
+    const confirmed = await showConfirm(`Switch device to ${targetMode} mode?`, {
+      title: "Switch mode",
+      confirmLabel: `Switch to ${targetMode}`,
+    });
+    if (!confirmed) return;
     if (!endpoints.setMode) {
       showToast("Manual mode endpoint is not configured.", "error");
       return;
@@ -585,7 +806,12 @@ async function sendManualCommand(type) {
   const isNutrient = type === "nutrient";
   const endpoint = isNutrient ? endpoints.doseNutrient : endpoints.dosePhDown;
   const actionLabel = isNutrient ? "dose nutrient" : "dose pH-down";
-  if (!window.confirm(`Confirm manual action: ${actionLabel}?`)) return;
+  const confirmed = await showConfirm(`This will ${actionLabel} now.`, {
+    title: "Confirm manual action",
+    confirmLabel: "Send command",
+    danger: !isNutrient,
+  });
+  if (!confirmed) return;
   if (!endpoint) {
     showToast(`Manual control endpoint for ${actionLabel} is not configured.`, "error");
     return;
@@ -593,6 +819,10 @@ async function sendManualCommand(type) {
 
   await postJSON(endpoint, { device_id: DEVICE_ID });
   showToast(`Manual command sent: ${actionLabel}.`, "warn");
+}
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function buildTips() {
@@ -610,12 +840,43 @@ function buildTips() {
     const min = deviceRanges?.[metric.minField];
     const max = deviceRanges?.[metric.maxField];
     const range = min != null && max != null ? `${min}–${max}` : "the target range";
+    const direction = state.label.includes("HIGH") ? "high" : "low";
+    const correction = direction === "high" ? metric.highCorrection : metric.lowCorrection;
+
     if (state.state === "ok") {
-      tips.push({ severity: "ok", text: `${metric.label} is steady at ${state.valueText}, right in the ${range} target.` });
+      tips.push({ severity: "ok", text: `${metric.label} is steady at ${state.valueText}, right in the ${range} target. No action needed.` });
     } else if (state.state === "warn") {
-      tips.push({ severity: "warn", text: `${metric.label} is trending ${state.label.toLowerCase()} (${state.valueText}). Keep an eye on it before it drifts outside ${range}.` });
+      if (correction.automatic) {
+        const autoNote =
+          currentMode === "AUTO"
+            ? `The ${correction.pumpLabel} will kick in automatically if it crosses the line.`
+            : "Device is in MANUAL mode, so auto-dosing won't kick in until you switch back to AUTO.";
+        tips.push({
+          severity: "warn",
+          text: `${metric.label} is trending ${state.label.toLowerCase()} (${state.valueText}), nearing the edge of ${range}. ${correction.consequence} ${autoNote}`,
+        });
+      } else {
+        tips.push({
+          severity: "warn",
+          text: `${metric.label} is trending ${state.label.toLowerCase()} (${state.valueText}), nearing the edge of ${range}. ${correction.consequence} Keep watching — if it crosses, you'll need to ${correction.manualAction}.`,
+        });
+      }
     } else if (state.state === "error") {
-      tips.push({ severity: "error", text: `${metric.label} is ${state.label} at ${state.valueText}, outside ${range}. Consider a manual correction.` });
+      if (correction.automatic) {
+        const autoNote =
+          currentMode === "AUTO"
+            ? `The ${correction.pumpLabel} will auto-correct this on the next reading.`
+            : "Device is in MANUAL mode, so this won't auto-correct — dose from Manual Controls now, or switch back to AUTO.";
+        tips.push({
+          severity: "error",
+          text: `${metric.label} is ${state.label} at ${state.valueText}, outside ${range}. ${correction.consequence} ${autoNote}`,
+        });
+      } else {
+        tips.push({
+          severity: "error",
+          text: `${metric.label} is ${state.label} at ${state.valueText}, outside ${range}. ${correction.consequence} ${capitalize(correction.manualAction)}.`,
+        });
+      }
     } else if (state.state === "offline") {
       tips.push({ severity: "neutral", text: `${metric.label}: ${state.label.toLowerCase()}. Check the sensor connection.` });
     }
@@ -640,9 +901,9 @@ function renderTips() {
   tipsListEl.innerHTML = tips.map((tip) => `<li class="tip-item ${tip.severity}">${tip.text}</li>`).join("");
 }
 
-function addChatMessage(text, sender) {
+function addChatMessage(text, sender, severity = "neutral") {
   const div = document.createElement("div");
-  div.className = `chat-msg ${sender}`;
+  div.className = sender === "bot" ? `chat-msg ${sender} ${severity}` : `chat-msg ${sender}`;
   div.textContent = text;
   chatMessagesEl.appendChild(div);
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
@@ -651,28 +912,59 @@ function addChatMessage(text, sender) {
 function formatMetricAnswer(key) {
   const metric = stats[key];
   const state = lastMetricStates[key];
-  if (!state) return `I don't have a ${metric.label} reading yet.`;
+  if (!state) return { text: `I don't have a ${metric.label} reading yet.`, severity: "neutral" };
   const min = deviceRanges?.[metric.minField];
   const max = deviceRanges?.[metric.maxField];
   const range = min != null && max != null ? `${min}–${max}` : "unknown";
   if (state.state === "offline") {
-    return `${metric.label}: no current reading (${state.label.toLowerCase()}). Target range is ${range}.`;
+    return { text: `${metric.label}: no current reading (${state.label.toLowerCase()}). Target range is ${range}.`, severity: "neutral" };
   }
-  return `${metric.label} is currently ${state.valueText} (${state.label}). Target range is ${range}.`;
+  return { text: `${metric.label} is currently ${state.valueText} (${state.label}). Target range is ${range}.`, severity: state.state };
 }
 
 function answerQuestion(raw) {
   const q = raw.toLowerCase();
 
   if (!isConnected) {
-    return "I can't reach the backend right now, so I don't have live data to check.";
+    return { text: "I can't reach the backend right now, so I don't have live data to check.", severity: "error" };
   }
   if (/\b(hi|hello|hey)\b/.test(q)) {
-    return "Hi! Ask me about your pH, TDS, temperature, mode, dosing totals, or whether everything's okay.";
+    return { text: "Hi! Ask me about your pH, TDS, temperature, mode, dosing totals, or whether everything's okay.", severity: "neutral" };
   }
   if (/\bhelp\b|what can you/.test(q)) {
-    return 'I can answer things like "what\'s my pH?", "is TDS okay?", "what mode am I in?", "how much nutrient has been dosed?", or "is everything fine?". I\'m a simple rule-based assistant, not a live AI — I only know what\'s on this dashboard.';
+    return {
+      text: 'I can answer things like "what\'s my pH?", "is TDS okay?", "what mode am I in?", "how much nutrient has been dosed?", "is everything fine?", "what does basil need?", "is kale good for my setup?", or "what crops fit my current range?". I\'m a simple rule-based assistant, not a live AI — I only know what\'s on this dashboard and my crop guide.',
+      severity: "neutral",
+    };
   }
+
+  const mentionedCrop = findCropInText(q);
+  if (mentionedCrop && deviceRanges && /fit|compatible|suitable|match|good for my|work (for|with) my/.test(q)) {
+    return compareCropToDeviceRanges(mentionedCrop);
+  }
+  if (mentionedCrop) {
+    return { text: describeCrop(mentionedCrop), severity: "neutral" };
+  }
+  if (/what (can|should) i grow|suggest.*crop|crops?.*\bfit\b|\bfit my\b/.test(q)) {
+    return suggestCropsForCurrentRange();
+  }
+  if (/beginner|easy (crop|plant)/.test(q)) {
+    const names = CROP_GUIDE.filter((c) => c.beginner).map((c) => c.name).join(", ");
+    return { text: `Good beginner-friendly crops from my guide: ${names}.`, severity: "neutral" };
+  }
+  if (/cool region|cool weather crop/.test(q)) {
+    const names = CROP_GUIDE.filter((c) => c.coolRegion).map((c) => c.name).join(", ");
+    return { text: `Crops that prefer cooler conditions: ${names}.`, severity: "neutral" };
+  }
+  if (/warm region|warm weather crop/.test(q)) {
+    const names = CROP_GUIDE.filter((c) => c.warmRegion).map((c) => c.name).join(", ");
+    return { text: `Crops that prefer warmer conditions: ${names}.`, severity: "neutral" };
+  }
+  if (/low water/.test(q)) {
+    const names = CROP_GUIDE.filter((c) => c.lowWater).map((c) => c.name).join(", ");
+    return { text: `Low-water, low-maintenance crops: ${names}.`, severity: "neutral" };
+  }
+
   if (/\bph\b/.test(q) && !q.includes("ph-down") && !q.includes("ph down")) {
     return formatMetricAnswer("ph");
   }
@@ -683,21 +975,31 @@ function answerQuestion(raw) {
     return formatMetricAnswer("temp");
   }
   if (/\bmode\b|\bauto\b|\bmanual\b/.test(q)) {
-    return `The device is currently in ${currentMode} mode. ${currentMode === "MANUAL" ? "Automatic corrections are paused until you switch back to AUTO." : "It will auto-correct out-of-range readings."}`;
+    return {
+      text: `The device is currently in ${currentMode} mode. ${currentMode === "MANUAL" ? "Automatic corrections are paused until you switch back to AUTO." : "It will auto-correct out-of-range readings."}`,
+      severity: currentMode === "MANUAL" ? "warn" : "ok",
+    };
   }
   if (/connect|online|offline|backend/.test(q)) {
-    return isConnected ? "The dashboard is connected to the backend." : "The dashboard can't currently reach the backend.";
+    return {
+      text: isConnected ? "The dashboard is connected to the backend." : "The dashboard can't currently reach the backend.",
+      severity: isConnected ? "ok" : "error",
+    };
   }
   if (/total|dosed|how much/.test(q)) {
-    return `Lifetime totals: ${nutrientTotalEl.textContent} nutrient, ${phTotalEl.textContent} pH-down.`;
+    return { text: `Lifetime totals: ${nutrientTotalEl.textContent} nutrient, ${phTotalEl.textContent} pH-down.`, severity: "neutral" };
   }
   if (/okay|alright|fine|problem|wrong|issue|alert/.test(q)) {
     const tips = buildTips();
     const issues = tips.filter((t) => t.severity === "warn" || t.severity === "error");
-    if (issues.length === 0) return "Everything looks good right now — all readings are within target range.";
-    return `Heads up: ${issues.map((t) => t.text).join(" ")}`;
+    if (issues.length === 0) return { text: "Everything looks good right now — all readings are within target range.", severity: "ok" };
+    const severity = issues.some((t) => t.severity === "error") ? "error" : "warn";
+    return { text: `Heads up: ${issues.map((t) => t.text).join(" ")}`, severity };
   }
-  return 'I\'m a simple rule-based assistant — I can answer questions about your pH, TDS, temperature, mode, connection, and dosing totals. Try "what\'s my pH?" or "is everything okay?"';
+  return {
+    text: 'I\'m a simple rule-based assistant — I can answer questions about your pH, TDS, temperature, mode, connection, dosing totals, and crops like basil, kale, or lettuce. Try "what\'s my pH?", "what does mint need?", or "what crops fit my range?"',
+    severity: "neutral",
+  };
 }
 
 function wireUI() {
@@ -790,7 +1092,7 @@ function wireUI() {
     addChatMessage(text, "user");
     chatInputEl.value = "";
     const reply = answerQuestion(text);
-    window.setTimeout(() => addChatMessage(reply, "bot"), 300);
+    window.setTimeout(() => addChatMessage(reply.text, "bot", reply.severity), 300);
   });
 }
 

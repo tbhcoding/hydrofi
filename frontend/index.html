@@ -352,6 +352,17 @@
     </section>
   </main>
 
+  <div id="confirm-overlay" class="confirm-overlay hidden">
+    <div class="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
+      <h2 id="confirm-modal-title" class="confirm-modal-title">Confirm action</h2>
+      <p id="confirm-modal-message" class="confirm-modal-message"></p>
+      <div class="confirm-modal-actions">
+        <button id="confirm-modal-cancel" class="btn btn-outline" type="button">Cancel</button>
+        <button id="confirm-modal-ok" class="btn btn-primary" type="button">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
