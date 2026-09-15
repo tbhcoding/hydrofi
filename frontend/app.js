@@ -11,7 +11,9 @@ const nutrientTotalEl = document.getElementById("nutrient-total");
 const phTotalEl = document.getElementById("ph-total");
 const alertBannerEl = document.getElementById("alert-banner");
 const farmStatusBannerEl = document.getElementById("farm-status-banner");
-const farmStatusTextEl = document.getElementById("farm-status-text");
+const farmStatusTitleEl = document.getElementById("farm-status-title");
+const farmStatusDescEl = document.getElementById("farm-status-desc");
+const farmStatusIconUseEl = document.getElementById("farm-status-icon-use");
 const toastContainerEl = document.getElementById("toast-container");
 const modeIndicatorEl = document.getElementById("mode-indicator");
 const modeToggleBtn = document.getElementById("mode-toggle-btn");
@@ -519,30 +521,41 @@ function renderAlerts(alerts) {
   previousAlertKeys = currentKeys;
 }
 
+const FARM_STATUS_ICONS = {
+  ok: "icon-check-circle",
+  warn: "icon-alert-triangle",
+  error: "icon-x-octagon",
+  neutral: "icon-info",
+};
+
+function setFarmStatus(severity, title, desc) {
+  farmStatusBannerEl.className = `farm-status-banner ${severity}`;
+  farmStatusTitleEl.textContent = title;
+  farmStatusDescEl.textContent = desc;
+  const iconId = FARM_STATUS_ICONS[severity] || FARM_STATUS_ICONS.neutral;
+  farmStatusIconUseEl.setAttribute("href", `#${iconId}`);
+  farmStatusIconUseEl.setAttribute("xlink:href", `#${iconId}`);
+}
+
 function renderFarmStatus() {
   if (!farmStatusBannerEl) return;
 
   if (!isConnected) {
-    farmStatusBannerEl.className = "farm-status-banner neutral";
-    farmStatusTextEl.textContent = "Farm status unknown — can't reach the backend";
+    setFarmStatus("neutral", "Farm Status: Unknown", "Can't reach the backend");
     return;
   }
   if (!lastReadingAtMs) {
-    farmStatusBannerEl.className = "farm-status-banner neutral";
-    farmStatusTextEl.textContent = "Farm status unknown — waiting for the first reading";
+    setFarmStatus("neutral", "Farm Status: Unknown", "Waiting for the first reading");
     return;
   }
 
   const states = Object.values(lastMetricStates);
   if (states.some((s) => s.state === "error")) {
-    farmStatusBannerEl.className = "farm-status-banner error";
-    farmStatusTextEl.textContent = "Farm Status: Alert — a reading is outside its target range";
+    setFarmStatus("error", "Farm Status: Alert", "A reading is outside its target range");
   } else if (states.some((s) => s.state === "warn" || s.state === "offline")) {
-    farmStatusBannerEl.className = "farm-status-banner warn";
-    farmStatusTextEl.textContent = "Farm Status: Warning — something needs attention";
+    setFarmStatus("warn", "Farm Status: Warning", "Something needs attention");
   } else {
-    farmStatusBannerEl.className = "farm-status-banner ok";
-    farmStatusTextEl.textContent = "Farm Status: Normal — all readings within target range";
+    setFarmStatus("ok", "Farm Status: Normal", "All readings within target range");
   }
 }
 
