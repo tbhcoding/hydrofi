@@ -10,6 +10,8 @@ const lastUpdatedEl = document.getElementById("last-updated");
 const nutrientTotalEl = document.getElementById("nutrient-total");
 const phTotalEl = document.getElementById("ph-total");
 const alertBannerEl = document.getElementById("alert-banner");
+const farmStatusBannerEl = document.getElementById("farm-status-banner");
+const farmStatusTextEl = document.getElementById("farm-status-text");
 const toastContainerEl = document.getElementById("toast-container");
 const modeIndicatorEl = document.getElementById("mode-indicator");
 const modeToggleBtn = document.getElementById("mode-toggle-btn");
@@ -296,6 +298,7 @@ function setConnectionStatus(state, detail) {
   connectionStatusTextEl.textContent = detail || state;
   connectionStatusEl.className = `status status-${state}`;
   renderTips();
+  renderFarmStatus();
 }
 
 function formatRelativeAge(msSinceUpdate) {
@@ -516,6 +519,33 @@ function renderAlerts(alerts) {
   previousAlertKeys = currentKeys;
 }
 
+function renderFarmStatus() {
+  if (!farmStatusBannerEl) return;
+
+  if (!isConnected) {
+    farmStatusBannerEl.className = "farm-status-banner neutral";
+    farmStatusTextEl.textContent = "Farm status unknown — can't reach the backend";
+    return;
+  }
+  if (!lastReadingAtMs) {
+    farmStatusBannerEl.className = "farm-status-banner neutral";
+    farmStatusTextEl.textContent = "Farm status unknown — waiting for the first reading";
+    return;
+  }
+
+  const states = Object.values(lastMetricStates);
+  if (states.some((s) => s.state === "error")) {
+    farmStatusBannerEl.className = "farm-status-banner error";
+    farmStatusTextEl.textContent = "Farm Status: Alert — a reading is outside its target range";
+  } else if (states.some((s) => s.state === "warn" || s.state === "offline")) {
+    farmStatusBannerEl.className = "farm-status-banner warn";
+    farmStatusTextEl.textContent = "Farm Status: Warning — something needs attention";
+  } else {
+    farmStatusBannerEl.className = "farm-status-banner ok";
+    farmStatusTextEl.textContent = "Farm Status: Normal — all readings within target range";
+  }
+}
+
 function updateModeUI(mode) {
   currentMode = (mode || "—").toUpperCase();
   deviceModeEl.textContent = currentMode;
@@ -598,6 +628,7 @@ async function loadLatest() {
     updateFreshnessStatus();
     setConnectionStatus("ok", "connected");
     renderTips();
+    renderFarmStatus();
   } catch (err) {
     if (err.message.includes("no readings")) {
       setConnectionStatus("warn", "no readings yet");
@@ -616,6 +647,7 @@ async function loadLatest() {
       });
       renderAlerts([{ key: "global-no-readings", severity: "warn", message: "No readings available yet" }]);
       renderTips();
+      renderFarmStatus();
     } else {
       throw err;
     }

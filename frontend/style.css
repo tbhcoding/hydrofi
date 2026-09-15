@@ -322,6 +322,49 @@ main {
   color: #b12d2d;
 }
 
+.farm-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 16px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  margin-bottom: 1rem;
+}
+
+.farm-status-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+.farm-status-banner.ok {
+  border-color: rgba(47, 167, 111, 0.28);
+  background: linear-gradient(135deg, rgba(237, 250, 240, 0.95), rgba(255, 255, 255, 0.9));
+  color: var(--green);
+}
+
+.farm-status-banner.warn {
+  border-color: rgba(244, 169, 74, 0.35);
+  background: linear-gradient(135deg, rgba(255, 248, 236, 0.95), rgba(255, 255, 255, 0.9));
+  color: #965f06;
+}
+
+.farm-status-banner.error {
+  border-color: rgba(233, 107, 106, 0.3);
+  background: linear-gradient(135deg, rgba(255, 240, 240, 0.96), rgba(255, 255, 255, 0.9));
+  color: #b12d2d;
+}
+
+.farm-status-banner.neutral {
+  border-color: var(--border);
+  background: var(--bg-strong);
+  color: var(--muted);
+}
+
 .hidden {
   display: none;
 }
