@@ -9,6 +9,7 @@ polls every 30s. Contract lives in docs/DEVICE_API.md.
 
 import json
 import os
+import secrets
 import threading
 from datetime import datetime, timedelta, timezone
 
@@ -36,6 +37,11 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 GEMINI_MODEL = "gemini-2.5-flash"
 
+# Shared secret for the dashboard's device controls (mode switch and
+# manual dosing). Those endpoints move pumps on real hardware, so they
+# fail closed: with no key configured they refuse every request.
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
+
 # FastAPI runs sync def endpoints in a threadpool, and concurrent
 # requests through this one shared client intermittently hit
 # `httpx.ReadError: [Errno 35]`. Traffic here is tiny (one device
@@ -60,6 +66,19 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+def require_admin(x_admin_key: str | None) -> None:
+    """Gate endpoints that change device state or queue pump commands."""
+    if not ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Device controls are disabled: ADMIN_API_KEY is not set on the server.",
+        )
+    if not x_admin_key or not secrets.compare_digest(
+        x_admin_key.encode(), ADMIN_API_KEY.encode()
+    ):
+        raise HTTPException(status_code=401, detail="Invalid or missing operator key.")
 
 
 def require_device(device_id: str) -> None:
@@ -258,8 +277,9 @@ def get_dose_totals(device_id: str):
 
 
 @app.post("/api/devices/mode")
-def set_device_mode(body: SetModeRequest):
+def set_device_mode(body: SetModeRequest, x_admin_key: str | None = Header(default=None)):
     """Dashboard-triggered mode switch (AUTO/MANUAL toggle)."""
+    require_admin(x_admin_key)
     require_device(body.device_id)
     db_execute(db.table("devices").update({"mode": body.mode}).eq("id", body.device_id))
     return {"ok": True, "mode": body.mode}
@@ -286,15 +306,17 @@ def queue_manual_dose(device_id: str, action: str) -> None:
 
 
 @app.post("/api/dose/nutrient")
-def manual_dose_nutrient(body: DoseRequest):
+def manual_dose_nutrient(body: DoseRequest, x_admin_key: str | None = Header(default=None)):
     """Dashboard 'Dose Nutrient' button."""
+    require_admin(x_admin_key)
     queue_manual_dose(body.device_id, "dose_nutrient")
     return {"ok": True}
 
 
 @app.post("/api/dose/ph-down")
-def manual_dose_ph_down(body: DoseRequest):
+def manual_dose_ph_down(body: DoseRequest, x_admin_key: str | None = Header(default=None)):
     """Dashboard 'Dose pH-down' button."""
+    require_admin(x_admin_key)
     queue_manual_dose(body.device_id, "dose_ph_down")
     return {"ok": True}
 

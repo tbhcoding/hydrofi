@@ -83,6 +83,13 @@ Fill in `.env` from Supabase → **Project Settings → API**:
 - `SUPABASE_URL` — the project URL
 - `SUPABASE_SERVICE_KEY` — the **service_role** key, not `anon`
 
+And set the operator key that unlocks the dashboard's device controls:
+
+- `ADMIN_API_KEY` — any long random string
+  (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`).
+  The dashboard asks for it once per tab before it switches modes or
+  doses. Left unset, those endpoints refuse every request.
+
 Then:
 
 ```bash
@@ -137,7 +144,7 @@ cd backend
 railway up
 ```
 
-Env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`) live on Railway, not in
+Env vars (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `ADMIN_API_KEY`) live on Railway, not in
 this repo — manage them with `railway variable set` / `railway variable list`.
 
 ---
@@ -147,6 +154,10 @@ this repo — manage them with `railway variable set` / `railway variable list`.
 **`.env` is gitignored. Keep it that way.** If a Supabase service key ever
 reaches a commit, rotate it in the Supabase dashboard immediately — deleting
 the commit is not enough, since git history keeps it.
+
+**Device controls require the operator key.** `POST /api/devices/mode`,
+`/api/dose/nutrient` and `/api/dose/ph-down` move real pumps, so they need
+an `X-Admin-Key` header matching `ADMIN_API_KEY`. Read endpoints stay public.
 
 **Free tier auto-pauses** after 7 days with no database activity. Once the
 device is posting continuously this is moot; during development, if `/health`
