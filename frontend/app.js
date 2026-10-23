@@ -295,6 +295,55 @@ async function postJSON(path, body) {
   return res.json().catch(() => ({}));
 }
 
+// Device controls (mode switch, manual dosing) require the operator key
+// configured on the backend as ADMIN_API_KEY. It is asked for once and
+// kept in sessionStorage for this tab only -- never in config.js or the repo.
+const OPERATOR_KEY_STORAGE = "hydrofi.operatorKey";
+
+function readOperatorKey() {
+  try {
+    return sessionStorage.getItem(OPERATOR_KEY_STORAGE);
+  } catch {
+    return null;
+  }
+}
+
+function storeOperatorKey(key) {
+  try {
+    if (key) sessionStorage.setItem(OPERATOR_KEY_STORAGE, key);
+    else sessionStorage.removeItem(OPERATOR_KEY_STORAGE);
+  } catch {
+    // Storage blocked (private mode etc.): the key just isn't remembered.
+  }
+}
+
+async function postControl(path, body) {
+  let key = readOperatorKey();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (!key) {
+      key = window.prompt("Enter the HydroFi operator key to control the device:");
+      if (!key) throw new Error("operator key required");
+    }
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Key": key },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) {
+      storeOperatorKey(null);
+      key = null;
+      continue;
+    }
+    if (!res.ok) {
+      const responseBody = await res.json().catch(() => ({}));
+      throw new Error(responseBody.detail || `${res.status} ${res.statusText}`);
+    }
+    storeOperatorKey(key);
+    return res.json().catch(() => ({}));
+  }
+  throw new Error("operator key was rejected");
+}
+
 function setConnectionStatus(state, detail) {
   isConnected = state !== "error";
   connectionStatusTextEl.textContent = detail || state;
@@ -842,7 +891,7 @@ async function sendManualCommand(type) {
       showToast("Manual mode endpoint is not configured.", "error");
       return;
     }
-    await postJSON(endpoints.setMode, { device_id: DEVICE_ID, mode: targetMode });
+    await postControl(endpoints.setMode, { device_id: DEVICE_ID, mode: targetMode });
     updateModeUI(targetMode);
     showToast(`Mode switched to ${targetMode}.`, "warn");
     return;
@@ -862,7 +911,7 @@ async function sendManualCommand(type) {
     return;
   }
 
-  await postJSON(endpoint, { device_id: DEVICE_ID });
+  await postControl(endpoint, { device_id: DEVICE_ID });
   showToast(`Manual command sent: ${actionLabel}.`, "warn");
 }
 
